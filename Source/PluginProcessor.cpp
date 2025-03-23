@@ -8,14 +8,15 @@
 
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ProtectYourEars.h"
 
 //==============================================================================
 ChaoticSonicStitcherProcessor::ChaoticSonicStitcherProcessor()
     : AudioProcessor(
           BusesProperties()
               .withInput("Input", juce::AudioChannelSet::stereo(), true)
-              // .withInput("SourceIn", juce::AudioChannelSet::stereo(), true)
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      // .withInput("Sidechain", juce::AudioChannelSet::stereo(), true)
       params(apvts) {
     // do nothing
 }
@@ -77,6 +78,19 @@ void ChaoticSonicStitcherProcessor::prepareToPlay(double sampleRate,
                                                   int samplesPerBlock) {
     params.prepareToPlay(sampleRate);
     params.reset();
+
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = juce::uint32(samplesPerBlock);
+    spec.numChannels = 2;
+
+    double numSamples = 5000.0f / 1000.0 * sampleRate;
+    int maxDelayInSamples = int(std::ceil(numSamples));
+
+    delayLineSrcL.setMaximumDelayInSamples(maxDelayInSamples);
+    delayLineSrcR.setMaximumDelayInSamples(maxDelayInSamples);
+    delayLineSrcL.reset();
+    delayLineSrcR.reset();
 }
 
 void ChaoticSonicStitcherProcessor::releaseResources() {
@@ -86,7 +100,22 @@ void ChaoticSonicStitcherProcessor::releaseResources() {
 
 bool ChaoticSonicStitcherProcessor::isBusesLayoutSupported(
     const BusesLayout& layouts) const {
-    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+    const auto mono = juce::AudioChannelSet::mono();
+    const auto stereo = juce::AudioChannelSet::stereo();
+    const auto mainIn = layouts.getMainInputChannelSet();
+    const auto mainOut = layouts.getMainOutputChannelSet();
+
+    if (mainIn == mono && mainOut == mono) {
+        return true;
+    }
+    if (mainIn == mono && mainOut == stereo) {
+        return true;
+    }
+    if (mainIn == stereo && mainOut == stereo) {
+        return true;
+    }
+
+    return false;
 }
 
 void ChaoticSonicStitcherProcessor::processBlock(
@@ -96,44 +125,78 @@ void ChaoticSonicStitcherProcessor::processBlock(
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+    // Clear output channels that aren't needed
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
     params.update();
 
-    float* channelDataL = buffer.getWritePointer(0);
-    float* channelDataR = buffer.getWritePointer(1);
+    float sampleRate = float(getSampleRate());
+
+    // get main input buffers
+    auto mainInput = getBusBuffer(buffer, true, 0);
+    auto mainInputChannels = mainInput.getNumChannels();
+    auto isMainInputStereo = mainInputChannels > 1;
+    const float* inputDataL = mainInput.getReadPointer(0);
+    const float* inputDataR =
+        mainInput.getReadPointer(isMainInputStereo ? 1 : 0);
+
+    // get main output buffers
+    auto mainOutput = getBusBuffer(buffer, false, 0);
+    auto mainOutputChannels = mainOutput.getNumChannels();
+    auto isMainOutputStereo = mainOutputChannels > 1;
+    float* outputDataL = mainOutput.getWritePointer(0);
+    float* outputDataR = mainOutput.getWritePointer(isMainOutputStereo ? 1 : 0);
+
+    // upper clipping 
+    float maxL = 0.0f;
+    float maxR = 0.0f;
 
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         params.smoothen();
 
-        channelDataL[sample] *= params.gain;
-        channelDataR[sample] *= params.gain;
+        float dryL = inputDataL[sample];
+        float dryR = inputDataR[sample];
+
+        // apply bypass - send dry signal direct to out
+        if (params.bypassed) {
+            outputDataL[sample] = dryL;
+            outputDataR[sample] = dryR;
+            continue;
+        }
+
+
+        float mono = (dryL + dryR) * 0.5f;
+
+        delayLineSrcL.write(dryL * 0.8f);
+        delayLineSrcR.write(dryR * 0.8f);
+ 
+        float wetL = delayLineSrcL.read(0.2f);
+        float wetR = delayLineSrcR.read(0.2f);
+
+        float mixL = dryL + wetL * params.mix;
+        float mixR = dryR + wetR * params.mix;
+
+        float outL = mixL * params.gain;
+        float outR = mixR * params.gain;
+
+
+
+        outputDataL[sample] = outL;
+        outputDataR[sample] = outR;
+
+        maxL = std::max(maxL, std::abs(outL));
+        maxR = std::max(maxR, std::abs(outR));
     }
 
-    /* DeepSeek codes:
-        // Feature extraction
-    auto controlData = controlBuffer.getReadPointer(0);
-    auto sourceData = sourceBuffer.getReadPointer(0);
 
-    // Implement your Concat2 algorithm here
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        float controlFrame = extractFeatures(controlData, sample);
-        float sourceFrame = findBestMatch(sourceData, controlFrame);
+    #if JUCE_DEBUG
+    protectYourEars(buffer);
+    #endif
 
-        buffer.setSample(0, sample, sourceFrame);
-    }
+    levelL.updateIfGreater(maxL);
+    levelR.updateIfGreater(maxR);
 
-    // Process through EQ and reverb
-    applyEQ(buffer);
-    applyReverb(buffer);
-    */
 }
 
 //==============================================================================
@@ -144,7 +207,7 @@ bool ChaoticSonicStitcherProcessor::hasEditor() const {
 
 juce::AudioProcessorEditor* ChaoticSonicStitcherProcessor::createEditor() {
     // return new ChaoticSonicStitcherEditor(*this);
-    return new juce::GenericAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================

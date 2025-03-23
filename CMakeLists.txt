@@ -38,10 +38,12 @@ set(SourceFiles
     Source/PluginEditor.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
-    # Source/ParamIDs.h
     Source/Parameters.cpp
     Source/Parameters.h
+    Source/DelayLine.cpp
+    Source/DelayLine.h
     Source/DSP.h
+    Source/ProtectYourEars.h
 )
 
 

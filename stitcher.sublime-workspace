@@ -1,0 +1,435 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"add_di",
+				"add_subdirectory"
+			],
+			[
+				"add",
+				"add_library"
+			],
+			[
+				"cma",
+				"cmake_minimum_required\tbuiltin"
+			],
+			[
+				"sam",
+				"Samples"
+			],
+			[
+				"Pa",
+				"Params"
+			],
+			[
+				"t",
+				"t_value"
+			],
+			[
+				"t_b",
+				"t_blockOuts"
+			],
+			[
+				"if",
+				"ifmain\tif __name__ == '__main__'"
+			],
+			[
+				"mia",
+				"main\tmain()"
+			],
+			[
+				"in",
+				"inc\t#include <…>"
+			],
+			[
+				"log",
+				"logError"
+			],
+			[
+				"t_ind",
+				"t_indexs"
+			],
+			[
+				"n_",
+				"n_speakers"
+			],
+			[
+				"get_n",
+				"get_n_unmasked_speakers"
+			],
+			[
+				"t_in",
+				"t_indexs"
+			],
+			[
+				"t_",
+				"t_index"
+			],
+			[
+				"fo",
+				"forv\tVector For Loop"
+			],
+			[
+				"speaker",
+				"speaker_manager"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 4802,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+			]
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"Arithmetic"
+			],
+			[
+				"Snippet: ",
+				"Snippet: Lorem ipsum"
+			],
+			[
+				"package control: ins",
+				"Package Control: Install Package"
+			],
+			[
+				"package ",
+				"Install Package Control"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/zeyuyang42/Documents/workspace/stitcher"
+	],
+	"file_history":
+	[
+		"/Users/zeyuyang42/Downloads/NoiseGateTutorial/Source/NoiseGateTutorial.h",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/CMakeLists.txt",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/src/AudioProcessorGraphTutorial_01.h",
+		"/Users/zeyuyang42/Desktop/JUCE_Tutorial/cmake_templates/audio-plugin-template/cmake/cpm.cmake",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/src/main.cpp",
+		"/Users/zeyuyang42/Desktop/JUCE_Tutorial/cmake_templates/SimpleJucePluginTemplate/CMakeLists.txt",
+		"/Users/zeyuyang42/Desktop/JUCE_Tutorial/cmake_templates/audio-plugin-template/CMakePresets.json",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/src/NoiseGateTutorial.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/Makefile",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/src/SynthDecibelLevelControlTutorial.h",
+		"/Users/zeyuyang42/Documents/workspace/stitcher/.gitignore",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/CMakeLists.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/.github/workflows/build-zerr-core-static-library.yml",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/.github/workflows/build-puredata-plugins-with-pd-lib-builder.yml",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/pd-lib-builder/Makefile.pdlibbuilder",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/.gitignore",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/.giti",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/.gitmodules",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/utils.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/zerocrossingrate.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/zerocrossingrate.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/conanfile.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/build/build/Release/generators/CMakePresets.json",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/CMakeUserPresets.json",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/LICENSE",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/CMakeLists.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/c-cpp.yaml",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/CMakeLists.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/LICENSE",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/build/conandeps.mk",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/conanfile.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/speakermanager.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/build/conan_toolchain.cmake",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/build/yaml-cpp-config.cmake",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/types.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/build/cmake_install.cmake",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/featureprocessor.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/featureprocessor.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/featurebank.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/build/conandeps.mk",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/build/conanrun.sh",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/conanfile.txt",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/circulation_8.yaml",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/conandeps.mk",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/build.sh",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/conanrunenv-release-armv8.sh",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/conanrun.sh",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/conanbuild.sh",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/envelopecombinator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/audiodisperser.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/zerocrossings.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/rootmeansquare.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/rolloff.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/flux.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/flatness.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/crestfactor.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/features/centroid.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/ringbuffer.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/onsetdetector.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/logger.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/linearinterpolator.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/frequencytransformer.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/configs.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/featureextractor.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/envelopegenerator.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/jack/main.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/jack/zerr.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/jack/zerr.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_combinator.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_combinator_tilde.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_features_tilde.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_features.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_envelopes_tilde.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_envelopes.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_disperser_tilde.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/include/zerr_disperser.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/envelopecombinator.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/modules/audiodisperser.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/utils.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/ringbuffer.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/onsetdetector.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/logger.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/linearinterpolator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/envelopegenerator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/featurebank.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/modules/speakermanager.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/frequencytransformer.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/audio_features.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/centroid.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/crestfactor.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/flatness.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/rolloff.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/rootmeansquare.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/zerocrossings.h",
+		"/Users/zeyuyang42/Documents/workspace/cv/modern-typst-resume-main/modern-resume.typ",
+		"/Users/zeyuyang42/Documents/workspace/cv/modern-typst-resume-main/main.typ",
+		"/Users/zeyuyang42/Documents/workspace/cv/modern-typst-resume-main/icons.typ",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/features/centroid.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/features/crestfactor.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_envelopes~.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/utils/interpolator.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/src/utils/interpolator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/thesis/demo.pdf",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_envelopes.cpp",
+		"/Users/zeyuyang42/Documents/workspace/personal_blog/Absinthismus/app/page.tsx",
+		"/Users/zeyuyang42/Documents/workspace/personal_blog/Absinthismus/package.json",
+		"/Users/zeyuyang42/Desktop/wfs_64_direct.tmss",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/jack/meson.build",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/flux.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/core/include/features/audio_features.hpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_features.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_combinator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_disperser.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/dependencies/include/yaml-cpp/yaml-cpp/null.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/dependencies/include/yaml-cpp/yaml-cpp/node/type.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_combinator~.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_features~.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/src/zerr_disperser~.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/configs/modules/preset1.yaml",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/zerr_envelopes/zerr_envelopes.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/modules/speakermanager.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/utils/configs.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/puredata/zerr_disperser/pd-lib-builder/Makefile.pdlibbuilder",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/src/utils/utils.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/src/modules/featurebank.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/utils/utils.h",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/src/modules/envelopegenerator.cpp",
+		"/Users/zeyuyang42/Documents/workspace/zerr_workspace/Zerr/include/modules/envelopegenerator.h"
+	],
+	"find":
+	{
+		"height": 36.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "CMakeLists.txt",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4802,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1111,
+								1111
+							]
+						],
+						"settings":
+						{
+							"show_line_column": "disabled",
+							"syntax": "Packages/Sublime-CMakeLists/CMake.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 660.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 36.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.SFTP":
+	{
+		"height": 0.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "stitcher.sublime-project",
+	"replace":
+	{
+		"height": 68.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 369.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

@@ -180,8 +180,6 @@ void ChaoticSonicStitcherProcessor::processBlock(
         float outL = mixL * params.gain;
         float outR = mixR * params.gain;
 
-
-
         outputDataL[sample] = outL;
         outputDataR[sample] = outR;
 
@@ -194,8 +192,8 @@ void ChaoticSonicStitcherProcessor::processBlock(
     protectYourEars(buffer);
     #endif
 
-    levelL.updateIfGreater(maxL);
-    levelR.updateIfGreater(maxR);
+    // levelL.updateIfGreater(maxL);
+    // levelR.updateIfGreater(maxR);
 
 }
 

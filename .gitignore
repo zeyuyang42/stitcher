@@ -9,8 +9,11 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+.DS_Store
+
 CMakeUserPresets.json
+*.sublime-workspace
 
 
-getting-started-book-main/
 build/

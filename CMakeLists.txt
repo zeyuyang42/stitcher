@@ -42,7 +42,7 @@ set(SourceFiles
     Source/Parameters.h
     Source/DelayLine.cpp
     Source/DelayLine.h
-    Source/DSP.h
+    # Source/DSP.h
     Source/ProtectYourEars.h
 )
 

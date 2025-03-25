@@ -63,13 +63,20 @@ class ChaoticSonicStitcherProcessor : public juce::AudioProcessor {
     Parameters params;
 
  private:
-    
-    // DelayLine delayLineCtrL, delayLineCtrR;
+    //==============================================================================
+    // Buffer management
+    // std::unique_ptr<juce::AudioBuffer<float>> controlBuffer;
+    // std::unique_ptr<juce::AudioBuffer<float>> sourceBuffer;
+    // std::unique_ptr<juce::AudioBuffer<float>> outputBuffer;
+
+    DelayLine delayLineCtrL, delayLineCtrR;
     DelayLine delayLineSrcL, delayLineSrcR;
 
-    // DelayLine delayLineCtrL, delayLineSrcL;
-    // juce::AudioBuffer<float> featureBuffer;
-    // bool freezeState = false;
+    // Feature extraction buffers
+    juce::AudioBuffer<float> featureBuffer;
+
+    // Freeze state (sampling or freezing)
+    bool freezeState = false;
 
     // Effect chain
     // juce::dsp::ProcessorChain<

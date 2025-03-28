@@ -2,89 +2,112 @@
 
 #include <JuceHeader.h>
 
-// output
-const juce::ParameterID gainPID{"gain", 1};
-const juce::ParameterID mixPID{"mix", 1};
+namespace ParamIDs {
 
-// feature parameter
-const juce::ParameterID zcrWeightPID{"zcr", 1};  // Zero Crossing Rate
-const juce::ParameterID lmsWeightPID{"lms", 1};  // log mean square amplitude
-const juce::ParameterID fltWeightPID{"flt", 1};  // Spectral Flatness
+inline constexpr auto mix { "mix" };
+inline constexpr auto gain { "gain" };
 
-// const juce::ParameterID storeSizePID    { "storesize", 1 };
-const juce::ParameterID seekTimePID{"seektime", 1};
-const juce::ParameterID seekDurationPID{"seekdur", 1};
-const juce::ParameterID matchLengthPID{"matchlength", 1};
-const juce::ParameterID randomizationPID{"rmd", 1};
+inline constexpr auto grainPos { "grainPos" };
+inline constexpr auto grainSize { "grainSize" };
+inline constexpr auto interval { "interval" };
+inline constexpr auto pitch { "pitch" };
+inline constexpr auto width { "width" };
 
-// const juce::ParameterID freezeStorePID  { "freezestore", 1 };
+}
 
-const juce::ParameterID bypassPID{"bypass", 1};
+static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    auto msFormat = [](float value, int) {
+        if (value < 100.0f)
+            return juce::String(value, 1) + " ms";
+        else
+            return juce::String(std::roundf(value)) + " ms";
+    };
 
-class Parameters {
-  public:
-    Parameters(juce::AudioProcessorValueTreeState& apvts);
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::interval, 1 },
+        "intv",
+        juce::NormalisableRange<float>(10.0f, 500.0f, 0.01f, 0.405f),
+        100.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        msFormat,
+        nullptr));
 
-    static juce::AudioProcessorValueTreeState::ParameterLayout
-    createParameterLayout();
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::pitch, 1 },
+        ParamIDs::pitch,
+        juce::NormalisableRange<float>(-12.0f, 12.0f, 0.1f, 1.0f),
+        0.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 1) + " st"; },
+        nullptr));
 
-    void prepareToPlay(double sampleRate) noexcept;
-    void reset() noexcept;
-    void update() noexcept;
-    void smoothen() noexcept;
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::grainPos, 1 },
+        "pos",
+        juce::NormalisableRange<float>(10.0f, 500.0f, 1.0f, 0.405f),
+        100.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        msFormat,
+        nullptr));
 
-    // ConcatState
-    float zcrWeight = 50.0f;  // zero crossing rate weight
-    float lmsWeight = 50.0f;  // loudness matching weight
-    float fltWeight = 50.0f;  // spectral centroid weight
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::grainSize, 1 },
+        "size",
+        juce::NormalisableRange<float>(10.0f, 500.0f, 0.01f, 0.405f),
+        100.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        msFormat,
+        nullptr));
 
-    float seekTime = 1.0f;       // time window to search for matches
-    float seekDuration = 1.0f;   // duration to look ahead
-    float matchLength = 0.05f;   // grain size for matching
-    float randomization = 0.0f;  // randomization factor
+    auto percentFormat = [](float value, int) {
+        if (value < 10.0f)
+            return juce::String(value, 2) + " %";
+        else if (value < 100.0f)
+            return juce::String(value, 1) + " %";
+        else
+            return juce::String(value, 0) + " %";
+    };
 
-    bool freezeStore = false;
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::mix, 1 },
+        ParamIDs::mix,
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.01f, 1.0f),
+        50.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        percentFormat,
+        nullptr));
 
-    // output control
-    float gain = 0.0f;
-    float mix = 1.0f;
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::width, 1 },
+        ParamIDs::width,
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.01f, 1.0f),
+        50.0,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        percentFormat,
+        nullptr));
 
-    bool bypassed = false;
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID { ParamIDs::gain, 1 },
+        "vol",
+        juce::NormalisableRange<float>(-36.0f, 12.0f, 0.1f, 2.4f),
+        0.0f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) {
+            if (-10.0f < value && value < 10.0f)
+                return juce::String(value, 1) + " dB";
+            else
+                return juce::String(std::roundf(value), 0) + " dB";
+        },
+        nullptr));
 
-    juce::AudioParameterBool* bypassParam;
-
-  private:
-    juce::AudioParameterFloat* gainParam;
-    juce::LinearSmoothedValue<float> gainSmoother;
-
-    juce::AudioParameterFloat* mixParam;
-    juce::LinearSmoothedValue<float> mixSmoother;
-
-    juce::AudioParameterFloat* zcrWeightParam;
-    juce::LinearSmoothedValue<float> zcrWeightSmoother;
-
-    juce::AudioParameterFloat* lmsWeightParam;
-    juce::LinearSmoothedValue<float> lmsWeightSmoother;
-
-    juce::AudioParameterFloat* fltWeightParam;
-    juce::LinearSmoothedValue<float> fltWeightSmoother;
-
-    // juce::AudioParameterFloat* delayTimeParam;
-
-    // float targetDelayTime = 0.0f;
-    // float coeff = 0.0f;  // one-pole smoothing
-
-    // juce::AudioParameterFloat* feedbackParam;
-    // juce::LinearSmoothedValue<float> feedbackSmoother;
-
-    // juce::AudioParameterFloat* stereoParam;
-    // juce::LinearSmoothedValue<float> stereoSmoother;
-
-    // juce::AudioParameterFloat* lowCutParam;
-    // juce::LinearSmoothedValue<float> lowCutSmoother;
-
-    // juce::AudioParameterFloat* highCutParam;
-    // juce::LinearSmoothedValue<float> highCutSmoother;
-
-    // juce::AudioParameterChoice* delayNoteParam;
-};
+    return layout;
+}

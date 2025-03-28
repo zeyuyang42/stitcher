@@ -10,13 +10,13 @@
 
 #include <JuceHeader.h>
 
-#include "DelayLine.h"
 #include "Parameters.h"
 
 //==============================================================================
 /**
  */
-class ChaoticSonicStitcherProcessor : public juce::AudioProcessor {
+class ChaoticSonicStitcherProcessor : public juce::AudioProcessor,
+                                      public juce::AudioProcessorValueTreeState::Listener {
  public:
     //==============================================================================
     ChaoticSonicStitcherProcessor();
@@ -55,37 +55,23 @@ class ChaoticSonicStitcherProcessor : public juce::AudioProcessor {
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    // juce::AudioProcessorParameter* getBypassParameter() const override;
-
-    juce::AudioProcessorValueTreeState apvts{
-        *this, nullptr, "Parameters", Parameters::createParameterLayout()};
-
-    Parameters params;
+    //==============================================================================
+    // For parameter changes
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
 
  private:
+    // Parameters params;
+    juce::AudioProcessorValueTreeState parameters;
+    juce::UndoManager undoManager;
     //==============================================================================
     // Buffer management
-    // std::unique_ptr<juce::AudioBuffer<float>> controlBuffer;
-    // std::unique_ptr<juce::AudioBuffer<float>> sourceBuffer;
-    // std::unique_ptr<juce::AudioBuffer<float>> outputBuffer;
+    std::unique_ptr<juce::AudioBuffer<float>> controlBuffer;
+    std::unique_ptr<juce::AudioBuffer<float>> sourceBuffer;
 
-    DelayLine delayLineCtrL, delayLineCtrR;
-    DelayLine delayLineSrcL, delayLineSrcR;
+    struct OutputState {
+        std::atomic<float> gain;
+    } outputState;
 
-    // Feature extraction buffers
-    juce::AudioBuffer<float> featureBuffer;
-
-    // Freeze state (sampling or freezing)
-    bool freezeState = false;
-
-    // Effect chain
-    // juce::dsp::ProcessorChain<
-    //     juce::dsp::IIR::Filter<float>,
-    //     juce::dsp::IIR::Filter<float>,
-    //     juce::dsp::IIR::Filter<float>,
-    // > eqChain;
-
-    juce::dsp::Reverb reverbProcessor;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChaoticSonicStitcherProcessor)

@@ -5,7 +5,6 @@ set(COMPANY_NAME Absinthismus)
 set(PROJECT_NAME ChaoticSonicStitcher)
 set(PRODUCT_NAME Stitcher)
 
-# Change to your project name
 project(${PROJECT_NAME} VERSION 0.0.1)
 
 # Basic build setups
@@ -38,18 +37,11 @@ set(SourceFiles
     Source/PluginEditor.h
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
-    Source/Parameters.cpp
     Source/Parameters.h
-    Source/DelayLine.cpp
-    Source/DelayLine.h
-    # Source/DSP.h
     Source/ProtectYourEars.h
 )
 
-
-
-
-# Change these to your own preferences
+# Plugin preferences
 juce_add_plugin(${PROJECT_NAME}
         COMPANY_NAME                 ${COMPANY_NAME}
         IS_SYNTH                     FALSE
@@ -61,7 +53,7 @@ juce_add_plugin(${PROJECT_NAME}
         COPY_PLUGIN_AFTER_BUILD      TRUE
         PLUGIN_MANUFACTURER_CODE     Ab42
         PLUGIN_CODE                  CSS1
-        FORMATS                      VST3 Standalone
+        FORMATS                      VST3 AU Standalone
         PRODUCT_NAME                 ${PRODUCT_NAME}
 )
 

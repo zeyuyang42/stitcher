@@ -27,7 +27,7 @@ const juce::String StitcherProcessor::getName() const { return JucePlugin_Name; 
 bool StitcherProcessor::acceptsMidi() const { return false; }
 bool StitcherProcessor::producesMidi() const { return false; }
 bool StitcherProcessor::isMidiEffect() const { return false; }
-double StitcherProcessor::getTailLengthSeconds() const { return 0.0; }
+double StitcherProcessor::getTailLengthSeconds() const { return 5.0; }
 int StitcherProcessor::getNumPrograms() { return 1; }
 int StitcherProcessor::getCurrentProgram() { return 0; }
 void StitcherProcessor::setCurrentProgram(int) {}

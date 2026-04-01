@@ -1,8 +1,10 @@
 # Stitcher DSP Implementation Review
 
-**Date:** 2026-04-01  
+**Date:** 2026-04-01 (updated 2026-04-02)  
 **Branch:** dsp-finetune  
 **Scope:** Full self-review of every DSP component against the design spec and real-time audio constraints.
+
+**Status:** All 3 🔴 bugs fixed as of 2026-04-02. See Issue Summary table for current state.
 
 ---
 
@@ -133,20 +135,13 @@ The weight is multiplied with the delta before squaring, so the effective contri
 
 ### Issues
 
-🔴 **Heap allocation on the audio thread when `rand_ > 0`.**
+✅ ~~🔴~~ **Heap allocation on the audio thread when `rand_ > 0`.** **FIXED** (commit a2a64f8)
 
-```cpp
-// Inside match(), called from processBlock:
-std::vector<int> candidates;  // ← heap allocation every block
-```
+`candidates_` is now a `std::vector<int>` member, reserved to capacity 512 in `prepare()`. The audio-thread path uses `candidates_.clear()` + `candidates_.push_back()` which never allocates within that capacity.
 
-At default settings `rand_=0` this doesn't trigger, but once the user touches the Rand knob, `std::vector<int>` is heap-allocated every audio block. This can cause priority inversion and audible dropouts under memory pressure. Fix: pre-allocate `candidates_` as a member vector and use `candidates_.clear()` / `candidates_.push_back()`.
+✅ ~~🔴~~ **Data race on matcher weight members.** **FIXED** (commit 5d4ba60)
 
-🔴 **Data race on matcher weight members.**
-
-`updateMatcherFromParams()` is called from `parameterChanged()`, which runs on the **message thread**. It calls `matcher_.setWeights()` and `matcher_.setRand()`, which write plain `float` members (`wZcr_`, `wRms_`, `wSc_`, `wSt_`, `rand_`). The audio thread reads these same members inside `match()` → `distance()`. This is a data race (undefined behavior).
-
-The EQ and Reverb parameters correctly use atomic dirty flags for this exact reason. The matcher parameters should do the same: set `matcherDirty_ = true` in `parameterChanged`, then apply in `processBlock`.
+`parameterChanged()` now sets `matcherDirty_ = true` (same pattern as EQ/reverb). `processBlock` calls `updateMatcherFromParams()` at the start of the next audio block via `matcherDirty_.exchange(false)`.
 
 🟡 **`grainPos_` wraps but grows unboundedly between grain updates.** 
 
@@ -202,14 +197,9 @@ Note: `dryLevel = 1.f - wetLevel` inside `setParams`. So at `reverbWet=1.0`, dry
 
 ### Issues
 
-🔴 **`getTailLengthSeconds()` returns 0.0 despite reverb being active.**
+✅ ~~🔴~~ **`getTailLengthSeconds()` returns 0.0 despite reverb being active.** **FIXED** (commit 3077a72)
 
-```cpp
-// PluginProcessor.cpp
-double StitcherProcessor::getTailLengthSeconds() const { return 0.0; }
-```
-
-When the DAW stops playback or hits a region boundary, it checks `getTailLengthSeconds()` to decide how long to keep processing the plugin. Returning 0 means the DAW cuts the plugin immediately, clipping the reverb tail. This is audible. Should return something in the range of `reverb_room * 5.0f` or just a fixed `5.0`.
+Now returns `5.0` seconds. The DAW will keep processing the plugin for 5 seconds after audio stops, allowing the reverb tail to decay naturally.
 
 ---
 
@@ -285,11 +275,11 @@ outR[i] = dry * inR[i] + wet * grain;
 
 | # | Severity | Component | Description |
 |---|---|---|---|
-| 1 | 🔴 Bug | ConcatenativeMatcher | Heap allocation (`std::vector<int>`) inside `match()` when rand > 0 — real-time safety violation |
-| 2 | 🔴 Bug | ConcatenativeMatcher / PluginProcessor | `updateMatcherFromParams()` writes plain float members from message thread while audio thread reads them — data race |
-| 3 | 🔴 Bug | PluginProcessor | `getTailLengthSeconds()` returns 0.0, causing DAW to cut reverb tail on stop/region end |
+| 1 | ✅ Fixed | ConcatenativeMatcher | ~~Heap allocation (`std::vector<int>`) inside `match()` when rand > 0~~ — pre-allocated as member (commit a2a64f8) |
+| 2 | ✅ Fixed | ConcatenativeMatcher / PluginProcessor | ~~Data race on matcher weight members~~ — atomic dirty flag pattern applied (commit 5d4ba60) |
+| 3 | ✅ Fixed | PluginProcessor | ~~`getTailLengthSeconds()` returns 0.0~~ — now returns 5.0s (commit 3077a72) |
 | 4 | 🟡 Quality | FeatureExtractor | No FFT windowing — spectral leakage reduces SC/ST accuracy |
-| 5 | 🟡 Quality | ConcatenativeMatcher | `match()` distance formula squares weights (`(w*Δf)²`) — spec says `w*(Δf)²`; not a crash but semantically different |
+| 5 | 🟡 Quality | ConcatenativeMatcher | Distance formula squares weights (`(w*Δf)²`) — spec says `w*(Δf)²`; semantically different but internally consistent |
 | 6 | 🟡 Quality | PluginProcessor | `matchLen` and `seekTime` do nothing at runtime; misleading to users |
 | 7 | 🟡 Quality | PluginProcessor | Wet grain is always mono — `mix` > 0 collapses stereo image |
 | 8 | 🟡 Quality | PluginProcessor | `gainCtrl_` / `gainSrc_` applied before feature extraction — affects RMS matching in non-obvious ways |
@@ -300,14 +290,16 @@ outR[i] = dry * inR[i] + wet * grain;
 
 ---
 
-## Recommended Fix Order
+## Fix Status
 
-**High priority (correctness and stability):**
-1. Fix #3 first: `getTailLengthSeconds()` — one-liner, immediately audible improvement.
-2. Fix #2: move matcher weight updates to dirty flag pattern (same as EQ/reverb).
-3. Fix #1: pre-allocate `candidates_` vector in `ConcatenativeMatcher` to avoid audio-thread heap allocation.
+**✅ Completed (2026-04-02):**
+- #3: `getTailLengthSeconds()` → 5.0s
+- #2: Matcher weight data race → atomic dirty flag
+- #1: Audio-thread heap allocation → pre-allocated `candidates_` member
 
-**Lower priority (quality improvements for this dsp-finetune branch):**
-4. Fix #11: add `grainPos_ %= kFrameSize` reset.
-5. Consider #4 (Hann windowing) — would change matching character.
-6. Consider #6 — could make `seekTime` resize the corpus at runtime (requires care with thread safety).
+**Remaining (quality/minor, open for future work):**
+- #11: `grainPos_` overflow — add `grainPos_ %= kFrameSize` or clamp in processBlock
+- #4: FFT windowing — Hann window would improve SC/ST accuracy (changes matching character)
+- #6: `matchLen` / `seekTime` — make them functional or remove from UI to avoid confusion
+- #10: Fix `newestIndex()` comment in `CorpusStore.h`
+- #12: Add missing Catch2 tests for SC/ST precision, rand path, negative EQ gains

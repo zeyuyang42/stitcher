@@ -95,6 +95,9 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
+    if (matcherDirty_.exchange(false))
+        updateMatcherFromParams();
+
     if (eqDirty_.exchange(false))
         eq_.setGains(
             apvts_.getRawParameterValue(ParamIDs::eqLow)->load(),
@@ -197,7 +200,7 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
 {
     using namespace ParamIDs;
     if (id == zcrWeight || id == rmsWeight || id == scWeight || id == stWeight || id == rand_)
-        updateMatcherFromParams();
+        matcherDirty_ = true;
     else if (id == gainCtrl)
         gainCtrl_ = juce::Decibels::decibelsToGain(newValue);
     else if (id == gainSrc)

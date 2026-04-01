@@ -72,8 +72,9 @@ private:
     std::atomic<float> mix_        { 1.f };
     std::atomic<bool>  freeze_     { false };
 
-    std::atomic<bool> eqDirty_     { false };
-    std::atomic<bool> reverbDirty_ { false };
+    std::atomic<bool> eqDirty_      { false };
+    std::atomic<bool> reverbDirty_  { false };
+    std::atomic<bool> matcherDirty_ { false };
 
     void updateMatcherFromParams();
 

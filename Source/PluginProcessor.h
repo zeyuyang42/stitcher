@@ -55,6 +55,8 @@ private:
     // Internal frame accumulation buffers
     std::vector<float> ctrlAccum_;
     std::vector<float> srcAccum_;
+    std::vector<float> ctrlMono_;
+    std::vector<float> srcMono_;
     int accumPos_ = 0;
 
     // Output grain buffer and playback position
@@ -68,6 +70,9 @@ private:
     std::atomic<float> gainOut_    { 1.f };
     std::atomic<float> mix_        { 1.f };
     std::atomic<bool>  freeze_     { false };
+
+    std::atomic<bool> eqDirty_     { false };
+    std::atomic<bool> reverbDirty_ { false };
 
     void updateMatcherFromParams();
 

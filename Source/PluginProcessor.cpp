@@ -54,6 +54,8 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     ctrlAccum_.assign(kFrameSize, 0.f);
     srcAccum_.assign(kFrameSize, 0.f);
     grainBuf_.assign(kFrameSize, 0.f);
+    ctrlMono_.assign(samplesPerBlock, 0.f);
+    srcMono_.assign(samplesPerBlock, 0.f);
     accumPos_   = 0;
     grainPos_   = 0;
     grainReady_ = false;
@@ -74,8 +76,14 @@ void StitcherProcessor::releaseResources() {}
 
 bool StitcherProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    return layouts.getMainInputChannelSet()  == juce::AudioChannelSet::stereo()
-        && layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+    if (layouts.getMainInputChannelSet()  != juce::AudioChannelSet::stereo()) return false;
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()) return false;
+    // Sidechain bus must be stereo when present
+    const auto& inputBuses = layouts.inputBuses;
+    if (inputBuses.size() > 1 && inputBuses[1] != juce::AudioChannelSet::stereo()
+                               && !inputBuses[1].isDisabled())
+        return false;
+    return true;
 }
 
 void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
@@ -83,6 +91,18 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 {
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
+
+    if (eqDirty_.exchange(false))
+        eq_.setGains(
+            apvts_.getRawParameterValue(ParamIDs::eqLow)->load(),
+            apvts_.getRawParameterValue(ParamIDs::eqMid)->load(),
+            apvts_.getRawParameterValue(ParamIDs::eqHigh)->load());
+
+    if (reverbDirty_.exchange(false))
+        reverb_.setParams(
+            apvts_.getRawParameterValue(ParamIDs::reverbRoom)->load(),
+            apvts_.getRawParameterValue(ParamIDs::reverbDamp)->load(),
+            apvts_.getRawParameterValue(ParamIDs::reverbWet)->load());
 
     auto mainInput = getBusBuffer(buffer, true, 0);
     auto sidechain = getBusBuffer(buffer, true, 1);
@@ -93,16 +113,15 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     corpus_.setFrozen(freeze_.load());
 
     // Mix stereo buses to mono for DSP processing
-    std::vector<float> ctrlMono(numSamples), srcMono(numSamples);
     for (int i = 0; i < numSamples; ++i) {
-        ctrlMono[i] = (sidechain.getReadPointer(0)[i] + sidechain.getReadPointer(1)[i]) * 0.5f;
-        srcMono[i]  = (mainInput.getReadPointer(0)[i] + mainInput.getReadPointer(1)[i]) * 0.5f;
+        ctrlMono_[i] = (sidechain.getReadPointer(0)[i] + sidechain.getReadPointer(1)[i]) * 0.5f;
+        srcMono_[i]  = (mainInput.getReadPointer(0)[i] + mainInput.getReadPointer(1)[i]) * 0.5f;
     }
 
     // Accumulate samples into frames; when a frame is complete, analyse + match
     for (int i = 0; i < numSamples; ++i) {
-        ctrlAccum_[accumPos_] = ctrlMono[i] * gainCtrl_.load();
-        srcAccum_[accumPos_]  = srcMono[i]  * gainSrc_.load();
+        ctrlAccum_[accumPos_] = ctrlMono_[i] * gainCtrl_.load();
+        srcAccum_[accumPos_]  = srcMono_[i]  * gainSrc_.load();
         ++accumPos_;
 
         if (accumPos_ == kFrameSize) {
@@ -182,15 +201,14 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
     else if (id == freeze)
         freeze_ = newValue > 0.5f;
     else if (id == eqLow || id == eqMid || id == eqHigh)
-        eq_.setGains(
-            apvts_.getRawParameterValue(eqLow)->load(),
-            apvts_.getRawParameterValue(eqMid)->load(),
-            apvts_.getRawParameterValue(eqHigh)->load());
+        eqDirty_ = true;
     else if (id == reverbRoom || id == reverbDamp || id == reverbWet)
-        reverb_.setParams(
-            apvts_.getRawParameterValue(reverbRoom)->load(),
-            apvts_.getRawParameterValue(reverbDamp)->load(),
-            apvts_.getRawParameterValue(reverbWet)->load());
+        reverbDirty_ = true;
+    else if (id == ParamIDs::seekTime || id == ParamIDs::matchLen)
+    {
+        // seekTime: corpus capacity is fixed at prepareToPlay; resize not supported at runtime.
+        // matchLen: frame size is fixed at kFrameSize (1024 samples); param is reserved for future use.
+    }
 }
 
 void StitcherProcessor::updateMatcherFromParams()

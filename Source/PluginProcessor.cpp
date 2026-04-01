@@ -113,8 +113,12 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     corpus_.setFrozen(freeze_.load());
 
     // Mix stereo buses to mono for DSP processing
+    // Guard against unconnected sidechain (VST3 DAWs may not connect it by default)
+    const bool hasSidechain = (sidechain.getNumChannels() >= 2);
     for (int i = 0; i < numSamples; ++i) {
-        ctrlMono_[i] = (sidechain.getReadPointer(0)[i] + sidechain.getReadPointer(1)[i]) * 0.5f;
+        ctrlMono_[i] = hasSidechain
+            ? (sidechain.getReadPointer(0)[i] + sidechain.getReadPointer(1)[i]) * 0.5f
+            : 0.f;
         srcMono_[i]  = (mainInput.getReadPointer(0)[i] + mainInput.getReadPointer(1)[i]) * 0.5f;
     }
 
@@ -155,11 +159,11 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         outR[i] = dry * inR[i] + wet * grain;
     }
 
-    // EQ → Reverb → output gain
-    juce::dsp::AudioBlock<float> fullBlock(buffer);
-    eq_.process(fullBlock);
-    reverb_.process(fullBlock);
-    buffer.applyGain(gainOut_.load());
+    // EQ → Reverb → output gain (scoped to output bus only — VST3 buffer includes sidechain channels)
+    juce::dsp::AudioBlock<float> outputBlock(output);
+    eq_.process(outputBlock);
+    reverb_.process(outputBlock);
+    output.applyGain(0, numSamples, gainOut_.load());
 
 #if JUCE_DEBUG
     protectYourEars(buffer);

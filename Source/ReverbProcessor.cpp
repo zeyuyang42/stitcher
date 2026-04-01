@@ -2,7 +2,7 @@
 
 void ReverbProcessor::prepare(const juce::dsp::ProcessSpec& spec)
 {
-    reverb_.setSampleRate(spec.sampleRate);
+    reverb_.prepare(spec);
     juce::dsp::Reverb::Parameters p;
     p.roomSize  = 0.5f;
     p.damping   = 0.5f;
@@ -23,14 +23,6 @@ void ReverbProcessor::setParams(float roomSize, float damping, float wetLevel)
 
 void ReverbProcessor::process(juce::dsp::AudioBlock<float>& block)
 {
-    if (block.getNumChannels() == 2) {
-        reverb_.processStereo(
-            block.getChannelPointer(0),
-            block.getChannelPointer(1),
-            static_cast<int>(block.getNumSamples()));
-    } else {
-        reverb_.processMono(
-            block.getChannelPointer(0),
-            static_cast<int>(block.getNumSamples()));
-    }
+    juce::dsp::ProcessContextReplacing<float> ctx(block);
+    reverb_.process(ctx);
 }

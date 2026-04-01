@@ -10,7 +10,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-ChaoticSonicStitcherEditor::ChaoticSonicStitcherEditor (ChaoticSonicStitcherProcessor& p)
+StitcherEditor::StitcherEditor (StitcherProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     // Make sure that before the constructor has finished, you've set the
@@ -18,12 +18,12 @@ ChaoticSonicStitcherEditor::ChaoticSonicStitcherEditor (ChaoticSonicStitcherProc
     setSize (800, 500);
 }
 
-ChaoticSonicStitcherEditor::~ChaoticSonicStitcherEditor()
+StitcherEditor::~StitcherEditor()
 {
 }
 
 //==============================================================================
-void ChaoticSonicStitcherEditor::paint (juce::Graphics& g)
+void StitcherEditor::paint (juce::Graphics& g)
 {
     g.fillAll (juce::Colours::blue);        // 1
     g.setColour (juce::Colours::white);
@@ -32,7 +32,7 @@ void ChaoticSonicStitcherEditor::paint (juce::Graphics& g)
         getLocalBounds(), juce::Justification::centred, 1);
 }
 
-void ChaoticSonicStitcherEditor::resized()
+void StitcherEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..

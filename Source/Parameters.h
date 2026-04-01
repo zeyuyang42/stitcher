@@ -71,13 +71,13 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         [](float v, int) { return String(v, 2); }, nullptr));
 
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{ParamIDs::matchLen, 1}, "Match Len",
+        ParameterID{ParamIDs::matchLen, 1}, "Match Len (fixed ~23ms)",
         NormalisableRange<float>(10.f, 100.f, 1.f), 50.f,
         String(), AudioProcessorParameter::genericParameter,
         msFormat, nullptr));
 
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{ParamIDs::seekTime, 1}, "Seek Time",
+        ParameterID{ParamIDs::seekTime, 1}, "Seek Time (set before load)",
         NormalisableRange<float>(1.f, 5.f, 0.01f), 1.f,
         String(), AudioProcessorParameter::genericParameter,
         secFormat, nullptr));

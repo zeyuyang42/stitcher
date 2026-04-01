@@ -205,7 +205,7 @@ tests/
 **CMake dependencies (all via CPM):**
 ```cmake
 # JUCE (already present)
-CPMAddPackage(NAME juce GIT_REPOSITORY https://github.com/juce-framework/JUCE.git GIT_TAG origin/master)
+CPMAddPackage("gh:juce-framework/JUCE#master")
 
 # Catch2 for unit tests
 CPMAddPackage("gh:catchorg/Catch2@3.7.1")

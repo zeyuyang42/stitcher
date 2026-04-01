@@ -8,6 +8,7 @@ void ConcatenativeMatcher::prepare(int frameSize)
     frameSize_ = frameSize;
     outputBuffer_.assign(frameSize, 0.f);
     prevBuffer_.assign(frameSize, 0.f);
+    candidates_.reserve(512);  // enough for ~5s corpus at 44.1kHz; avoids alloc on audio thread
 }
 
 void ConcatenativeMatcher::setWeights(float zcr, float rms, float sc, float st)
@@ -49,12 +50,12 @@ const float* ConcatenativeMatcher::match(const Features& controlFeatures,
     int matchIdx = bestIdx;
     if (rand_ > 0.f && corpus.size() > 1) {
         float threshold = (1.f + rand_) * minDist + 1e-6f;
-        std::vector<int> candidates;
+        candidates_.clear();
         for (int i = 0; i < corpus.size(); ++i)
             if (distance(controlFeatures, corpus.getFrame(i).features) <= threshold)
-                candidates.push_back(i);
-        if (!candidates.empty())
-            matchIdx = candidates[random_.nextInt(static_cast<int>(candidates.size()))];
+                candidates_.push_back(i);
+        if (!candidates_.empty())
+            matchIdx = candidates_[random_.nextInt(static_cast<int>(candidates_.size()))];
     }
 
     const auto& frame = corpus.getFrame(matchIdx);

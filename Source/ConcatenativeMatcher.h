@@ -25,6 +25,7 @@ private:
 
     std::vector<float> outputBuffer_;
     std::vector<float> prevBuffer_;
+    std::vector<int>   candidates_;   // pre-allocated, reused each block to avoid audio-thread heap alloc
     static constexpr int kCrossfadeLen = 64;
 
     juce::Random random_;

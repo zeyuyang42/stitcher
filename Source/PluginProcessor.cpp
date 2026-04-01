@@ -1,231 +1,231 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
-#include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 #include "ProtectYourEars.h"
 
-//==============================================================================
-ChaoticSonicStitcherProcessor::ChaoticSonicStitcherProcessor()
-    : AudioProcessor(
-          BusesProperties()
-              .withInput("Input", juce::AudioChannelSet::stereo(), true)
-              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      // .withInput("Sidechain", juce::AudioChannelSet::stereo(), true)
-      params(apvts) {
-    // do nothing
+StitcherProcessor::StitcherProcessor()
+    : AudioProcessor(BusesProperties()
+          .withInput ("Input",     juce::AudioChannelSet::stereo(), true)
+          .withInput ("Sidechain", juce::AudioChannelSet::stereo(), true)
+          .withOutput("Output",    juce::AudioChannelSet::stereo(), true))
+    , apvts_(*this, &undoManager_, "PARAMETERS", createParameterLayout())
+{
+    using namespace ParamIDs;
+    for (auto* id : { zcrWeight, rmsWeight, scWeight, stWeight,
+                      matchLen, seekTime, rand_,
+                      gainCtrl, gainSrc,
+                      eqLow, eqMid, eqHigh,
+                      reverbRoom, reverbDamp, reverbWet,
+                      gainOut, mix })
+        apvts_.addParameterListener(id, this);
+
+    apvts_.addParameterListener(freeze, this);
 }
 
-ChaoticSonicStitcherProcessor::~ChaoticSonicStitcherProcessor() {}
+StitcherProcessor::~StitcherProcessor() {}
 
-//==============================================================================
-const juce::String ChaoticSonicStitcherProcessor::getName() const {
-    return JucePlugin_Name;
-}
+const juce::String StitcherProcessor::getName() const { return JucePlugin_Name; }
+bool StitcherProcessor::acceptsMidi() const { return false; }
+bool StitcherProcessor::producesMidi() const { return false; }
+bool StitcherProcessor::isMidiEffect() const { return false; }
+double StitcherProcessor::getTailLengthSeconds() const { return 0.0; }
+int StitcherProcessor::getNumPrograms() { return 1; }
+int StitcherProcessor::getCurrentProgram() { return 0; }
+void StitcherProcessor::setCurrentProgram(int) {}
+const juce::String StitcherProcessor::getProgramName(int) { return {}; }
+void StitcherProcessor::changeProgramName(int, const juce::String&) {}
 
-bool ChaoticSonicStitcherProcessor::acceptsMidi() const {
-#if JucePlugin_WantsMidiInput
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool ChaoticSonicStitcherProcessor::producesMidi() const {
-#if JucePlugin_ProducesMidiOutput
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool ChaoticSonicStitcherProcessor::isMidiEffect() const {
-#if JucePlugin_IsMidiEffect
-    return true;
-#else
-    return false;
-#endif
-}
-
-double ChaoticSonicStitcherProcessor::getTailLengthSeconds() const {
-    return 0.0;
-}
-
-int ChaoticSonicStitcherProcessor::getNumPrograms() {
-    return 1;  // NB: some hosts don't cope very well if you tell them there are
-               // 0 programs, so this should be at least 1, even if you're not
-               // really implementing programs.
-}
-
-int ChaoticSonicStitcherProcessor::getCurrentProgram() { return 0; }
-
-void ChaoticSonicStitcherProcessor::setCurrentProgram(int index) {}
-
-const juce::String ChaoticSonicStitcherProcessor::getProgramName(int index) {
-    return {};
-}
-
-void ChaoticSonicStitcherProcessor::changeProgramName(
-    int index, const juce::String& newName) {}
-
-//==============================================================================
-void ChaoticSonicStitcherProcessor::prepareToPlay(double sampleRate,
-                                                  int samplesPerBlock) {
-    params.prepareToPlay(sampleRate);
-    params.reset();
-
+void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+{
     juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = juce::uint32(samplesPerBlock);
-    spec.numChannels = 2;
+    spec.sampleRate       = sampleRate;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.numChannels      = 2;
 
-    double numSamples = 5000.0f / 1000.0 * sampleRate;
-    int maxDelayInSamples = int(std::ceil(numSamples));
+    featureExtractor_.prepare(kFrameSize);
 
-    delayLineSrcL.setMaximumDelayInSamples(maxDelayInSamples);
-    delayLineSrcR.setMaximumDelayInSamples(maxDelayInSamples);
-    delayLineSrcL.reset();
-    delayLineSrcR.reset();
+    float seekTime = apvts_.getRawParameterValue(ParamIDs::seekTime)->load();
+    int maxFrames  = static_cast<int>(seekTime * sampleRate / kFrameSize) + 1;
+    corpus_.prepare(kFrameSize, maxFrames);
+
+    matcher_.prepare(kFrameSize);
+    eq_.prepare(spec);
+    reverb_.prepare(spec);
+
+    ctrlAccum_.assign(kFrameSize, 0.f);
+    srcAccum_.assign(kFrameSize, 0.f);
+    grainBuf_.assign(kFrameSize, 0.f);
+    ctrlMono_.assign(samplesPerBlock, 0.f);
+    srcMono_.assign(samplesPerBlock, 0.f);
+    accumPos_   = 0;
+    grainPos_   = 0;
+    grainReady_ = false;
+
+    updateMatcherFromParams();
+
+    gainCtrl_ = juce::Decibels::decibelsToGain(
+        apvts_.getRawParameterValue(ParamIDs::gainCtrl)->load());
+    gainSrc_ = juce::Decibels::decibelsToGain(
+        apvts_.getRawParameterValue(ParamIDs::gainSrc)->load());
+    gainOut_ = juce::Decibels::decibelsToGain(
+        apvts_.getRawParameterValue(ParamIDs::gainOut)->load());
+    mix_    = apvts_.getRawParameterValue(ParamIDs::mix)->load() / 100.f;
+    freeze_ = apvts_.getRawParameterValue(ParamIDs::freeze)->load() > 0.5f;
 }
 
-void ChaoticSonicStitcherProcessor::releaseResources() {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
+void StitcherProcessor::releaseResources() {}
+
+bool StitcherProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+{
+    if (layouts.getMainInputChannelSet()  != juce::AudioChannelSet::stereo()) return false;
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()) return false;
+    // Sidechain bus must be stereo when present
+    const auto& inputBuses = layouts.inputBuses;
+    if (inputBuses.size() > 1 && inputBuses[1] != juce::AudioChannelSet::stereo()
+                               && !inputBuses[1].isDisabled())
+        return false;
+    return true;
 }
 
-bool ChaoticSonicStitcherProcessor::isBusesLayoutSupported(
-    const BusesLayout& layouts) const {
-    const auto mono = juce::AudioChannelSet::mono();
-    const auto stereo = juce::AudioChannelSet::stereo();
-    const auto mainIn = layouts.getMainInputChannelSet();
-    const auto mainOut = layouts.getMainOutputChannelSet();
-
-    if (mainIn == mono && mainOut == mono) {
-        return true;
-    }
-    if (mainIn == mono && mainOut == stereo) {
-        return true;
-    }
-    if (mainIn == stereo && mainOut == stereo) {
-        return true;
-    }
-
-    return false;
-}
-
-void ChaoticSonicStitcherProcessor::processBlock(
-    juce::AudioBuffer<float>& buffer,
-    [[maybe_unused]] juce::MidiBuffer& midiMessages) {
+void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
+                                      juce::MidiBuffer& midiMessages)
+{
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // Clear output channels that aren't needed
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+    if (eqDirty_.exchange(false))
+        eq_.setGains(
+            apvts_.getRawParameterValue(ParamIDs::eqLow)->load(),
+            apvts_.getRawParameterValue(ParamIDs::eqMid)->load(),
+            apvts_.getRawParameterValue(ParamIDs::eqHigh)->load());
 
-    params.update();
+    if (reverbDirty_.exchange(false))
+        reverb_.setParams(
+            apvts_.getRawParameterValue(ParamIDs::reverbRoom)->load(),
+            apvts_.getRawParameterValue(ParamIDs::reverbDamp)->load(),
+            apvts_.getRawParameterValue(ParamIDs::reverbWet)->load());
 
-    float sampleRate = float(getSampleRate());
-
-    // get main input buffers
     auto mainInput = getBusBuffer(buffer, true, 0);
-    auto mainInputChannels = mainInput.getNumChannels();
-    auto isMainInputStereo = mainInputChannels > 1;
-    const float* inputDataL = mainInput.getReadPointer(0);
-    const float* inputDataR =
-        mainInput.getReadPointer(isMainInputStereo ? 1 : 0);
+    auto sidechain = getBusBuffer(buffer, true, 1);
+    auto output    = getBusBuffer(buffer, false, 0);
 
-    // get main output buffers
-    auto mainOutput = getBusBuffer(buffer, false, 0);
-    auto mainOutputChannels = mainOutput.getNumChannels();
-    auto isMainOutputStereo = mainOutputChannels > 1;
-    float* outputDataL = mainOutput.getWritePointer(0);
-    float* outputDataR = mainOutput.getWritePointer(isMainOutputStereo ? 1 : 0);
+    const int numSamples = buffer.getNumSamples();
 
-    // upper clipping 
-    float maxL = 0.0f;
-    float maxR = 0.0f;
+    corpus_.setFrozen(freeze_.load());
 
-    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
-        params.smoothen();
-
-        float dryL = inputDataL[sample];
-        float dryR = inputDataR[sample];
-
-        // apply bypass - send dry signal direct to out
-        if (params.bypassed) {
-            outputDataL[sample] = dryL;
-            outputDataR[sample] = dryR;
-            continue;
-        }
-
-
-        float mono = (dryL + dryR) * 0.5f;
-
-        delayLineSrcL.write(dryL * 0.8f);
-        delayLineSrcR.write(dryR * 0.8f);
- 
-        float wetL = delayLineSrcL.read(0.2f);
-        float wetR = delayLineSrcR.read(0.2f);
-
-        float mixL = dryL + wetL * params.mix;
-        float mixR = dryR + wetR * params.mix;
-
-        float outL = mixL * params.gain;
-        float outR = mixR * params.gain;
-
-        outputDataL[sample] = outL;
-        outputDataR[sample] = outR;
-
-        maxL = std::max(maxL, std::abs(outL));
-        maxR = std::max(maxR, std::abs(outR));
+    // Mix stereo buses to mono for DSP processing
+    // Guard against unconnected sidechain (VST3 DAWs may not connect it by default)
+    const bool hasSidechain = (sidechain.getNumChannels() >= 2);
+    for (int i = 0; i < numSamples; ++i) {
+        ctrlMono_[i] = hasSidechain
+            ? (sidechain.getReadPointer(0)[i] + sidechain.getReadPointer(1)[i]) * 0.5f
+            : 0.f;
+        srcMono_[i]  = (mainInput.getReadPointer(0)[i] + mainInput.getReadPointer(1)[i]) * 0.5f;
     }
 
+    // Accumulate samples into frames; when a frame is complete, analyse + match
+    for (int i = 0; i < numSamples; ++i) {
+        ctrlAccum_[accumPos_] = ctrlMono_[i] * gainCtrl_.load();
+        srcAccum_[accumPos_]  = srcMono_[i]  * gainSrc_.load();
+        ++accumPos_;
 
-    #if JUCE_DEBUG
+        if (accumPos_ == kFrameSize) {
+            Features srcFeatures  = featureExtractor_.extract(srcAccum_.data(),  kFrameSize);
+            Features ctrlFeatures = featureExtractor_.extract(ctrlAccum_.data(), kFrameSize);
+
+            corpus_.push(srcAccum_.data(), srcFeatures);
+
+            const float* matched = matcher_.match(ctrlFeatures, corpus_);
+            if (matched != nullptr)
+                std::copy(matched, matched + kFrameSize, grainBuf_.begin());
+
+            grainPos_   = 0;
+            grainReady_ = true;
+            accumPos_   = 0;
+        }
+    }
+
+    // Write grain to stereo output with dry/wet mix
+    const float wet = mix_.load();
+    const float dry = 1.f - wet;
+    float* outL = output.getWritePointer(0);
+    float* outR = output.getWritePointer(1);
+    const float* inL = mainInput.getReadPointer(0);
+    const float* inR = mainInput.getReadPointer(1);
+
+    for (int i = 0; i < numSamples; ++i) {
+        float grain = grainReady_ ? grainBuf_[grainPos_ % kFrameSize] : 0.f;
+        ++grainPos_;
+        outL[i] = dry * inL[i] + wet * grain;
+        outR[i] = dry * inR[i] + wet * grain;
+    }
+
+    // EQ → Reverb → output gain (scoped to output bus only — VST3 buffer includes sidechain channels)
+    juce::dsp::AudioBlock<float> outputBlock(output);
+    eq_.process(outputBlock);
+    reverb_.process(outputBlock);
+    output.applyGain(0, numSamples, gainOut_.load());
+
+#if JUCE_DEBUG
     protectYourEars(buffer);
-    #endif
-
-    // levelL.updateIfGreater(maxL);
-    // levelR.updateIfGreater(maxR);
-
+#endif
 }
 
-//==============================================================================
-bool ChaoticSonicStitcherProcessor::hasEditor() const {
-    return true;  // (change this to false if you choose to not supply an
-                  // editor)
-}
+bool StitcherProcessor::hasEditor() const { return true; }
 
-juce::AudioProcessorEditor* ChaoticSonicStitcherProcessor::createEditor() {
-    // return new ChaoticSonicStitcherEditor(*this);
+juce::AudioProcessorEditor* StitcherProcessor::createEditor()
+{
     return new juce::GenericAudioProcessorEditor(*this);
 }
 
-//==============================================================================
-void ChaoticSonicStitcherProcessor::getStateInformation(
-    juce::MemoryBlock& destData) {
-    copyXmlToBinary(*apvts.copyState().createXml(), destData);
-
-    // DBG(apvts.copyState().toXmlString());
+void StitcherProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+    copyXmlToBinary(*apvts_.copyState().createXml(), destData);
 }
 
-void ChaoticSonicStitcherProcessor::setStateInformation(const void* data,
-                                                        int sizeInBytes) {
+void StitcherProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())) {
-        apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    if (xml && xml->hasTagName(apvts_.state.getType()))
+        apvts_.replaceState(juce::ValueTree::fromXml(*xml));
+}
+
+void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
+{
+    using namespace ParamIDs;
+    if (id == zcrWeight || id == rmsWeight || id == scWeight || id == stWeight || id == rand_)
+        updateMatcherFromParams();
+    else if (id == gainCtrl)
+        gainCtrl_ = juce::Decibels::decibelsToGain(newValue);
+    else if (id == gainSrc)
+        gainSrc_ = juce::Decibels::decibelsToGain(newValue);
+    else if (id == gainOut)
+        gainOut_ = juce::Decibels::decibelsToGain(newValue);
+    else if (id == mix)
+        mix_ = newValue / 100.f;
+    else if (id == freeze)
+        freeze_ = newValue > 0.5f;
+    else if (id == eqLow || id == eqMid || id == eqHigh)
+        eqDirty_ = true;
+    else if (id == reverbRoom || id == reverbDamp || id == reverbWet)
+        reverbDirty_ = true;
+    else if (id == ParamIDs::seekTime || id == ParamIDs::matchLen)
+    {
+        // seekTime: corpus capacity is fixed at prepareToPlay; resize not supported at runtime.
+        // matchLen: frame size is fixed at kFrameSize (1024 samples); param is reserved for future use.
     }
 }
 
-//==============================================================================
-// This creates new instances of the plugin..
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {
-    return new ChaoticSonicStitcherProcessor();
+void StitcherProcessor::updateMatcherFromParams()
+{
+    matcher_.setWeights(
+        apvts_.getRawParameterValue(ParamIDs::zcrWeight)->load(),
+        apvts_.getRawParameterValue(ParamIDs::rmsWeight)->load(),
+        apvts_.getRawParameterValue(ParamIDs::scWeight)->load(),
+        apvts_.getRawParameterValue(ParamIDs::stWeight)->load());
+    matcher_.setRand(apvts_.getRawParameterValue(ParamIDs::rand_)->load());
+}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new StitcherProcessor();
 }

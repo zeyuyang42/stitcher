@@ -1,0 +1,78 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include "ConcatenativeMatcher.h"
+#include "CorpusStore.h"
+#include <vector>
+
+TEST_CASE("match returns nullptr when corpus is empty") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(1.f, 1.f, 1.f, 1.f);
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(4, 10);
+
+    Features ctrl{0.5f, 0.5f, 0.5f, 0.5f};
+    REQUIRE(matcher.match(ctrl, corpus) == nullptr);
+}
+
+TEST_CASE("match returns audio from the single frame when corpus has one frame") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(1.f, 1.f, 1.f, 1.f);
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(4, 10);
+    float audio[4] = {0.1f, 0.2f, 0.3f, 0.4f};
+    Features f{0.5f, 0.5f, 0.5f, 0.5f};
+    corpus.push(audio, f);
+
+    Features ctrl{0.5f, 0.5f, 0.5f, 0.5f};
+    const float* out = matcher.match(ctrl, corpus);
+    REQUIRE(out != nullptr);
+    REQUIRE(out[3] != 0.f); // non-silence (crossfade from silence to 0.4)
+}
+
+TEST_CASE("Matcher picks frame with closest RMS when only rms_weight is nonzero") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(0.f, 1.f, 0.f, 0.f); // only RMS
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(4, 10);
+    float audioLow[4]  = {0.1f, 0.1f, 0.1f, 0.1f};
+    float audioHigh[4] = {0.9f, 0.9f, 0.9f, 0.9f};
+    Features fLow  {0.f, 0.1f, 0.f, 0.f}; // low RMS
+    Features fHigh {0.f, 0.9f, 0.f, 0.f}; // high RMS
+    corpus.push(audioLow, fLow);
+    corpus.push(audioHigh, fHigh);
+
+    // Control has high RMS → should match audioHigh
+    Features ctrl{0.f, 0.9f, 0.f, 0.f};
+    const float* out = matcher.match(ctrl, corpus);
+    REQUIRE(out != nullptr);
+    float avg = 0.f;
+    for (int i = 0; i < 4; ++i) avg += out[i];
+    avg /= 4.f;
+    REQUIRE(avg > 0.05f); // clearly from the high frame, not silence
+}
+
+TEST_CASE("distance is 0 between identical features") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(1.f, 1.f, 1.f, 1.f);
+    Features a{0.3f, 0.5f, 0.7f, 0.2f};
+    REQUIRE(matcher.distance(a, a) == Catch::Approx(0.f));
+}
+
+TEST_CASE("weight of 0 means that feature does not affect distance") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(0.f, 1.f, 0.f, 0.f); // only RMS
+    Features a{0.f, 0.5f, 0.f, 0.f};
+    Features b{0.9f, 0.5f, 0.9f, 0.9f}; // different ZCR/SC/ST, same RMS
+    REQUIRE(matcher.distance(a, b) == Catch::Approx(0.f));
+}

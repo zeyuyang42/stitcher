@@ -14,11 +14,11 @@
 //==============================================================================
 /**
 */
-class ChaoticSonicStitcherEditor  : public juce::AudioProcessorEditor
+class StitcherEditor  : public juce::AudioProcessorEditor
 {
 public:
-    ChaoticSonicStitcherEditor (ChaoticSonicStitcherProcessor&);
-    ~ChaoticSonicStitcherEditor() override;
+    StitcherEditor (StitcherProcessor&);
+    ~StitcherEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -27,7 +27,7 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    ChaoticSonicStitcherProcessor& audioProcessor;
+    StitcherProcessor& audioProcessor;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChaoticSonicStitcherEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StitcherEditor)
 };

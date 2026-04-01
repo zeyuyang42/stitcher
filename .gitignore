@@ -17,3 +17,4 @@ stitcher.sublime-workspace
 
 
 build/
+.cache/

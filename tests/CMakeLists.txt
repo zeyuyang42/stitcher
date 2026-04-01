@@ -5,6 +5,7 @@ add_executable(StitcherTests
     EQProcessorTest.cpp
     ${CMAKE_SOURCE_DIR}/Source/FeatureExtractor.cpp
     ${CMAKE_SOURCE_DIR}/Source/CorpusStore.cpp
+    ${CMAKE_SOURCE_DIR}/Source/ConcatenativeMatcher.cpp
 )
 
 target_include_directories(StitcherTests PRIVATE ${CMAKE_SOURCE_DIR}/Source)

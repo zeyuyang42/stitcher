@@ -60,9 +60,16 @@ private:
     std::vector<float> srcMono_;
     int accumPos_ = 0;
 
-    // Output grain buffer and playback position
-    std::vector<float> grainBuf_;
-    int grainPos_ = 0;
+    // Grain double-buffer for position-aligned crossfade
+    static constexpr int kXfadeLen = 256;   // ~5.8ms at 44.1kHz
+    static_assert(kXfadeLen < kFrameSize,
+        "kXfadeLen must be less than kFrameSize: a new grain arrives every kFrameSize samples, "
+        "so a crossfade must complete before the next grain update.");
+    std::vector<float> currentGrain_;
+    std::vector<float> nextGrain_;
+    int  grainPos_   = 0;
+    int  xfadePos_   = 0;
+    bool xfading_    = false;
     bool grainReady_ = false;
 
     // Cached parameter values (atomic for audio-thread safety)

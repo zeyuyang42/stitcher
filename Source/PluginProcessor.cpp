@@ -56,11 +56,14 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
     ctrlAccum_.assign(kFrameSize, 0.f);
     srcAccum_.assign(kFrameSize, 0.f);
-    grainBuf_.assign(kFrameSize, 0.f);
+    currentGrain_.assign(kFrameSize, 0.f);
+    nextGrain_.assign(kFrameSize, 0.f);
     ctrlMono_.assign(samplesPerBlock, 0.f);
     srcMono_.assign(samplesPerBlock, 0.f);
     accumPos_   = 0;
     grainPos_   = 0;
+    xfadePos_   = 0;
+    xfading_    = false;
     grainReady_ = false;
 
     updateMatcherFromParams();
@@ -141,12 +144,21 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             corpus_.push(srcAccum_.data(), srcFeatures);
 
             const float* matched = matcher_.match(ctrlFeatures, corpus_);
-            if (matched != nullptr)
-                std::copy(matched, matched + kFrameSize, grainBuf_.begin());
-
-            grainPos_   = 0;
-            grainReady_ = true;
-            accumPos_   = 0;
+            if (matched != nullptr) {
+                if (!grainReady_) {
+                    // First grain: load directly and start playing from position 0
+                    std::copy(matched, matched + kFrameSize, currentGrain_.begin());
+                    grainPos_   = 0;
+                    grainReady_ = true;
+                } else {
+                    // Subsequent grains: start position-aligned crossfade
+                    // grainPos_ is NOT reset — we continue from the current playback position
+                    std::copy(matched, matched + kFrameSize, nextGrain_.begin());
+                    xfadePos_ = 0;
+                    xfading_  = true;
+                }
+            }
+            accumPos_ = 0;
         }
     }
 
@@ -159,8 +171,21 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const float* inR = mainInput.getReadPointer(1);
 
     for (int i = 0; i < numSamples; ++i) {
-        float grain = grainReady_ ? grainBuf_[grainPos_] : 0.f;
-        if (++grainPos_ >= kFrameSize) grainPos_ = 0;
+        float grain = 0.f;
+        if (grainReady_) {
+            const int pos = grainPos_;
+            if (xfading_) {
+                const float t = static_cast<float>(xfadePos_) / static_cast<float>(kXfadeLen);
+                grain = (1.f - t) * currentGrain_[pos] + t * nextGrain_[pos];
+                if (++xfadePos_ >= kXfadeLen) {
+                    std::copy(nextGrain_.begin(), nextGrain_.end(), currentGrain_.begin());
+                    xfading_ = false;
+                }
+            } else {
+                grain = currentGrain_[pos];
+            }
+            if (++grainPos_ >= kFrameSize) grainPos_ = 0;
+        }
         outL[i] = dry * inL[i] + wet * grain;
         outR[i] = dry * inR[i] + wet * grain;
     }

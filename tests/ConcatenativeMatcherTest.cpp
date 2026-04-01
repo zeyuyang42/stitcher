@@ -76,3 +76,37 @@ TEST_CASE("weight of 0 means that feature does not affect distance") {
     Features b{0.9f, 0.5f, 0.9f, 0.9f}; // different ZCR/SC/ST, same RMS
     REQUIRE(matcher.distance(a, b) == Catch::Approx(0.f));
 }
+
+TEST_CASE("rand path executes without crash and can return different frames") {
+    // Use frameSize=128 so samples beyond the 64-sample crossfade zone (indices 64+)
+    // contain the new frame's audio directly, making selection detectable.
+    ConcatenativeMatcher matcher;
+    matcher.prepare(128);
+    matcher.setWeights(0.f, 1.f, 0.f, 0.f);
+    matcher.setRand(1.f);  // maximum randomness — all equidistant frames are candidates
+
+    CorpusStore corpus;
+    corpus.prepare(128, 20);
+
+    // Push 10 frames with identical RMS features but distinct audio values
+    for (int j = 0; j < 10; ++j) {
+        std::vector<float> audio(128, float(j + 1));
+        corpus.push(audio.data(), Features{0.f, 0.5f, 0.f, 0.f});
+    }
+
+    Features ctrl{0.f, 0.5f, 0.f, 0.f};
+
+    // Warm up: first match crossfades from silence — skip it
+    matcher.match(ctrl, corpus);
+
+    // Collect post-crossfade values from repeated matches (index 100, past the 64-sample fade)
+    bool seenDifferentOutputs = false;
+    float prevVal = matcher.match(ctrl, corpus)[100];
+    for (int i = 0; i < 50; ++i) {
+        const float* out = matcher.match(ctrl, corpus);
+        REQUIRE(out != nullptr);
+        if (out[100] != prevVal)
+            seenDifferentOutputs = true;
+    }
+    REQUIRE(seenDifferentOutputs);
+}

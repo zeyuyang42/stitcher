@@ -51,6 +51,7 @@ private:
     ConcatenativeMatcher matcher_;
     EQProcessor          eq_;
     ReverbProcessor      reverb_;
+    juce::dsp::Limiter<float> limiter_;
 
     // Internal frame accumulation buffers
     std::vector<float> ctrlAccum_;

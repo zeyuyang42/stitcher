@@ -50,6 +50,9 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     matcher_.prepare(kFrameSize);
     eq_.prepare(spec);
     reverb_.prepare(spec);
+    limiter_.prepare(spec);
+    limiter_.setThreshold(-1.0f);  // -1 dBFS ceiling
+    limiter_.setRelease(50.0f);    // 50 ms release
 
     ctrlAccum_.assign(kFrameSize, 0.f);
     srcAccum_.assign(kFrameSize, 0.f);
@@ -159,11 +162,12 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         outR[i] = dry * inR[i] + wet * grain;
     }
 
-    // EQ → Reverb → output gain (scoped to output bus only — VST3 buffer includes sidechain channels)
+    // EQ → Reverb → output gain → limiter (scoped to output bus only — VST3 buffer includes sidechain channels)
     juce::dsp::AudioBlock<float> outputBlock(output);
     eq_.process(outputBlock);
     reverb_.process(outputBlock);
     output.applyGain(0, numSamples, gainOut_.load());
+    limiter_.process(juce::dsp::ProcessContextReplacing<float>(outputBlock));
 
 #if JUCE_DEBUG
     protectYourEars(buffer);

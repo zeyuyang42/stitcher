@@ -23,11 +23,11 @@ void ConcatenativeMatcher::setRand(float rand) { rand_ = rand; }
 
 float ConcatenativeMatcher::distance(const Features& a, const Features& b) const
 {
-    float dZcr = (a.zcr - b.zcr) * wZcr_;
-    float dRms = (a.rms - b.rms) * wRms_;
-    float dSc  = (a.sc  - b.sc)  * wSc_;
-    float dSt  = (a.st  - b.st)  * wSt_;
-    return std::sqrt(dZcr*dZcr + dRms*dRms + dSc*dSc + dSt*dSt);
+    auto sq = [](float x) { return x * x; };
+    return std::sqrt(wZcr_ * sq(a.zcr - b.zcr)
+                   + wRms_ * sq(a.rms - b.rms)
+                   + wSc_  * sq(a.sc  - b.sc)
+                   + wSt_  * sq(a.st  - b.st));
 }
 
 const float* ConcatenativeMatcher::match(const Features& controlFeatures,

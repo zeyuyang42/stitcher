@@ -7,7 +7,6 @@ void ConcatenativeMatcher::prepare(int frameSize)
 {
     frameSize_ = frameSize;
     outputBuffer_.assign(frameSize, 0.f);
-    prevBuffer_.assign(frameSize, 0.f);
     candidates_.reserve(512);  // enough for ~5s corpus at 44.1kHz; avoids alloc on audio thread
 }
 
@@ -59,16 +58,6 @@ const float* ConcatenativeMatcher::match(const Features& controlFeatures,
     }
 
     const auto& frame = corpus.getFrame(matchIdx);
-
-    // Crossfade from previous output into the new frame
-    std::copy(outputBuffer_.begin(), outputBuffer_.end(), prevBuffer_.begin());
     std::copy(frame.audio.begin(), frame.audio.end(), outputBuffer_.begin());
-
-    const int xfadeLen = std::min(kCrossfadeLen, frameSize_);
-    for (int i = 0; i < xfadeLen; ++i) {
-        float t = static_cast<float>(i) / static_cast<float>(xfadeLen);
-        outputBuffer_[i] = prevBuffer_[i] * (1.f - t) + outputBuffer_[i] * t;
-    }
-
     return outputBuffer_.data();
 }

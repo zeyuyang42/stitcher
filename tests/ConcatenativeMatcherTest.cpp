@@ -32,7 +32,7 @@ TEST_CASE("match returns audio from the single frame when corpus has one frame")
     Features ctrl{0.5f, 0.5f, 0.5f, 0.5f};
     const float* out = matcher.match(ctrl, corpus);
     REQUIRE(out != nullptr);
-    REQUIRE(out[3] != 0.f); // non-silence (crossfade from silence to 0.4)
+    REQUIRE(out[3] == Catch::Approx(0.4f)); // raw frame value — no crossfade in matcher
 }
 
 TEST_CASE("Matcher picks frame with closest RMS when only rms_weight is nonzero") {
@@ -78,8 +78,7 @@ TEST_CASE("weight of 0 means that feature does not affect distance") {
 }
 
 TEST_CASE("rand path executes without crash and can return different frames") {
-    // Use frameSize=128 so samples beyond the 64-sample crossfade zone (indices 64+)
-    // contain the new frame's audio directly, making selection detectable.
+    // Use frameSize=128 so the audio values at any index directly reflect the selected frame.
     ConcatenativeMatcher matcher;
     matcher.prepare(128);
     matcher.setWeights(0.f, 1.f, 0.f, 0.f);
@@ -96,10 +95,7 @@ TEST_CASE("rand path executes without crash and can return different frames") {
 
     Features ctrl{0.f, 0.5f, 0.f, 0.f};
 
-    // Warm up: first match crossfades from silence — skip it
-    matcher.match(ctrl, corpus);
-
-    // Collect post-crossfade values from repeated matches (index 100, past the 64-sample fade)
+    // Collect values from repeated matches (index 100)
     bool seenDifferentOutputs = false;
     float prevVal = matcher.match(ctrl, corpus)[100];
     for (int i = 0; i < 50; ++i) {
@@ -109,4 +105,27 @@ TEST_CASE("rand path executes without crash and can return different frames") {
             seenDifferentOutputs = true;
     }
     REQUIRE(seenDifferentOutputs);
+}
+
+TEST_CASE("match returns raw frame audio without crossfade modification") {
+    // With the old code, outputBuffer_[0] was prevBuffer_[0]*1.0 (t=0), not frame.audio[0].
+    // With the new code, outputBuffer_[0] == frame.audio[0] exactly.
+    ConcatenativeMatcher matcher;
+    matcher.prepare(128);
+    matcher.setWeights(1.f, 1.f, 1.f, 1.f);
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(128, 4);
+    std::vector<float> audio(128, 0.75f);
+    corpus.push(audio.data(), Features{0.5f, 0.5f, 0.5f, 0.5f});
+
+    Features ctrl{0.5f, 0.5f, 0.5f, 0.5f};
+
+    // Call match twice — old code crossfades from prev (silence) on first call,
+    // so first call returns 0.0 at index 0 (t=0). New code returns 0.75f immediately.
+    const float* out = matcher.match(ctrl, corpus);
+    REQUIRE(out != nullptr);
+    REQUIRE(out[0] == Catch::Approx(0.75f));   // raw frame value, no crossfade attenuation
+    REQUIRE(out[127] == Catch::Approx(0.75f)); // same across the whole buffer
 }

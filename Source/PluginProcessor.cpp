@@ -159,8 +159,8 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const float* inR = mainInput.getReadPointer(1);
 
     for (int i = 0; i < numSamples; ++i) {
-        float grain = grainReady_ ? grainBuf_[grainPos_ % kFrameSize] : 0.f;
-        ++grainPos_;
+        float grain = grainReady_ ? grainBuf_[grainPos_] : 0.f;
+        if (++grainPos_ >= kFrameSize) grainPos_ = 0;
         outL[i] = dry * inL[i] + wet * grain;
         outR[i] = dry * inR[i] + wet * grain;
     }

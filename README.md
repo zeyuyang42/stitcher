@@ -1,5 +1,7 @@
 # Stitcher
 
+> This is my pure vibe coded fun plugin project, derived from the previous [concatenative synthesizer in SuperCollider](https://github.com/zeyuyang42/concatenative-synthesizer).
+
 Real-time corpus-based concatenative synthesizer — JUCE VST3 / AU / Standalone plugin.
 
 Listens to a **sidechain (control)** signal and a **main (source)** signal, builds a rolling corpus of analyzed source frames, and continuously outputs the source frame whose audio features best match the current control signal. Followed by 3-band EQ, reverb, and output gain/mix.

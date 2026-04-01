@@ -18,7 +18,7 @@ public:
     // Number of valid frames currently stored (0 to maxFrames)
     int size() const;
 
-    // Index of the most recently written frame (slot index, not logical index)
+    // Logical index of the most recently written frame (== size()-1); use with getFrame()
     int newestIndex() const;
 
     // Access frame by logical index [0 .. size()-1]

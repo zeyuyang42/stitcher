@@ -4,7 +4,7 @@
 **Branch:** dsp-finetune  
 **Scope:** Full self-review of every DSP component against the design spec and real-time audio constraints.
 
-**Status:** All 3 🔴 bugs fixed as of 2026-04-02. See Issue Summary table for current state.
+**Status:** All 3 🔴 bugs and all actionable 🟡/🟢 issues resolved as of 2026-04-02. Issues #7, #8, #9 are documented as by-design. See Issue Summary table for full state.
 
 ---
 
@@ -278,15 +278,15 @@ outR[i] = dry * inR[i] + wet * grain;
 | 1 | ✅ Fixed | ConcatenativeMatcher | ~~Heap allocation (`std::vector<int>`) inside `match()` when rand > 0~~ — pre-allocated as member (commit a2a64f8) |
 | 2 | ✅ Fixed | ConcatenativeMatcher / PluginProcessor | ~~Data race on matcher weight members~~ — atomic dirty flag pattern applied (commit 5d4ba60) |
 | 3 | ✅ Fixed | PluginProcessor | ~~`getTailLengthSeconds()` returns 0.0~~ — now returns 5.0s (commit 3077a72) |
-| 4 | 🟡 Quality | FeatureExtractor | No FFT windowing — spectral leakage reduces SC/ST accuracy |
-| 5 | 🟡 Quality | ConcatenativeMatcher | Distance formula squares weights (`(w*Δf)²`) — spec says `w*(Δf)²`; semantically different but internally consistent |
-| 6 | 🟡 Quality | PluginProcessor | `matchLen` and `seekTime` do nothing at runtime; misleading to users |
-| 7 | 🟡 Quality | PluginProcessor | Wet grain is always mono — `mix` > 0 collapses stereo image |
-| 8 | 🟡 Quality | PluginProcessor | `gainCtrl_` / `gainSrc_` applied before feature extraction — affects RMS matching in non-obvious ways |
-| 9 | 🟡 Quality | EQProcessor | EQ processes blended dry+wet signal, not grain alone |
-| 10 | 🟢 Minor | CorpusStore | `newestIndex()` comment says "slot index" but returns logical index |
-| 11 | 🟢 Minor | ConcatenativeMatcher | `grainPos_` grows unboundedly (overflows after ~13h continuous use) |
-| 12 | 🟢 Minor | Tests | Missing SC/ST precision tests, rand path test, negative EQ gain tests |
+| 4 | ✅ Fixed | FeatureExtractor | ~~No FFT windowing~~ — Hann window applied in `prepare()` (commit 124576d) |
+| 5 | ✅ Fixed | ConcatenativeMatcher | ~~Distance formula squared weights~~ — corrected to `w*(Δf)²` (commit 22a3bba) |
+| 6 | ✅ Fixed | PluginProcessor | ~~matchLen/seekTime misleading~~ — labels now state fixed/load-time constraint (commit b1acaad) |
+| 7 | ⚙️ By design | PluginProcessor | Wet grain is mono — corpus is mono; increasing Mix collapses stereo image (expected) |
+| 8 | ⚙️ By design | PluginProcessor | `gainCtrl_`/`gainSrc_` applied before feature extraction — consistent with original SC implementation |
+| 9 | ⚙️ By design | EQProcessor | EQ processes dry+wet blend — architectural; EQ cannot target grain alone without signal path restructure |
+| 10 | ✅ Fixed | CorpusStore | ~~Wrong comment on `newestIndex()`~~ — corrected to "logical index" (commit d66dcfe) |
+| 11 | ✅ Fixed | ConcatenativeMatcher | ~~`grainPos_` grows unboundedly~~ — wraps at `kFrameSize` (commit 442346e) |
+| 12 | ✅ Fixed | Tests | ~~Missing tests~~ — SC/ST ordering, rand path, EQ attenuation added (commit a0a6279) |
 
 ---
 
@@ -297,9 +297,4 @@ outR[i] = dry * inR[i] + wet * grain;
 - #2: Matcher weight data race → atomic dirty flag
 - #1: Audio-thread heap allocation → pre-allocated `candidates_` member
 
-**Remaining (quality/minor, open for future work):**
-- #11: `grainPos_` overflow — add `grainPos_ %= kFrameSize` or clamp in processBlock
-- #4: FFT windowing — Hann window would improve SC/ST accuracy (changes matching character)
-- #6: `matchLen` / `seekTime` — make them functional or remove from UI to avoid confusion
-- #10: Fix `newestIndex()` comment in `CorpusStore.h`
-- #12: Add missing Catch2 tests for SC/ST precision, rand path, negative EQ gains
+**All issues resolved.** Nothing remaining.

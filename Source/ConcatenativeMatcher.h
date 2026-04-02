@@ -12,7 +12,7 @@ public:
     void setRand(float rand);
 
     // Returns pointer to output audio buffer (frameSize samples) or nullptr if corpus empty.
-    // Output is crossfaded from previous frame to avoid clicks.
+    // Caller is responsible for crossfading — this returns the raw matched frame audio.
     const float* match(const Features& controlFeatures, const CorpusStore& corpus);
 
     // Exposed for testing
@@ -24,8 +24,7 @@ private:
     float rand_ = 0.f;
 
     std::vector<float> outputBuffer_;
-    std::vector<float> prevBuffer_;
-    static constexpr int kCrossfadeLen = 64;
+    std::vector<int>   candidates_;   // pre-allocated, reused each block to avoid audio-thread heap alloc
 
     juce::Random random_;
 };

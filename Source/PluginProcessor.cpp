@@ -27,7 +27,7 @@ const juce::String StitcherProcessor::getName() const { return JucePlugin_Name; 
 bool StitcherProcessor::acceptsMidi() const { return false; }
 bool StitcherProcessor::producesMidi() const { return false; }
 bool StitcherProcessor::isMidiEffect() const { return false; }
-double StitcherProcessor::getTailLengthSeconds() const { return 0.0; }
+double StitcherProcessor::getTailLengthSeconds() const { return 5.0; }
 int StitcherProcessor::getNumPrograms() { return 1; }
 int StitcherProcessor::getCurrentProgram() { return 0; }
 void StitcherProcessor::setCurrentProgram(int) {}
@@ -50,14 +50,20 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     matcher_.prepare(kFrameSize);
     eq_.prepare(spec);
     reverb_.prepare(spec);
+    limiter_.prepare(spec);
+    limiter_.setThreshold(-1.0f);  // -1 dBFS ceiling
+    limiter_.setRelease(50.0f);    // 50 ms release
 
     ctrlAccum_.assign(kFrameSize, 0.f);
     srcAccum_.assign(kFrameSize, 0.f);
-    grainBuf_.assign(kFrameSize, 0.f);
+    currentGrain_.assign(kFrameSize, 0.f);
+    nextGrain_.assign(kFrameSize, 0.f);
     ctrlMono_.assign(samplesPerBlock, 0.f);
     srcMono_.assign(samplesPerBlock, 0.f);
     accumPos_   = 0;
     grainPos_   = 0;
+    xfadePos_   = 0;
+    xfading_    = false;
     grainReady_ = false;
 
     updateMatcherFromParams();
@@ -91,6 +97,9 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 {
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
+
+    if (matcherDirty_.exchange(false))
+        updateMatcherFromParams();
 
     if (eqDirty_.exchange(false))
         eq_.setGains(
@@ -135,12 +144,21 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             corpus_.push(srcAccum_.data(), srcFeatures);
 
             const float* matched = matcher_.match(ctrlFeatures, corpus_);
-            if (matched != nullptr)
-                std::copy(matched, matched + kFrameSize, grainBuf_.begin());
-
-            grainPos_   = 0;
-            grainReady_ = true;
-            accumPos_   = 0;
+            if (matched != nullptr) {
+                if (!grainReady_) {
+                    // First grain: load directly and start playing from position 0
+                    std::copy(matched, matched + kFrameSize, currentGrain_.begin());
+                    grainPos_   = 0;
+                    grainReady_ = true;
+                } else {
+                    // Subsequent grains: start position-aligned crossfade
+                    // grainPos_ is NOT reset — we continue from the current playback position
+                    std::copy(matched, matched + kFrameSize, nextGrain_.begin());
+                    xfadePos_ = 0;
+                    xfading_  = true;
+                }
+            }
+            accumPos_ = 0;
         }
     }
 
@@ -153,17 +171,31 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const float* inR = mainInput.getReadPointer(1);
 
     for (int i = 0; i < numSamples; ++i) {
-        float grain = grainReady_ ? grainBuf_[grainPos_ % kFrameSize] : 0.f;
-        ++grainPos_;
+        float grain = 0.f;
+        if (grainReady_) {
+            const int pos = grainPos_;
+            if (xfading_) {
+                const float t = static_cast<float>(xfadePos_) / static_cast<float>(kXfadeLen);
+                grain = (1.f - t) * currentGrain_[pos] + t * nextGrain_[pos];
+                if (++xfadePos_ >= kXfadeLen) {
+                    std::copy(nextGrain_.begin(), nextGrain_.end(), currentGrain_.begin());
+                    xfading_ = false;
+                }
+            } else {
+                grain = currentGrain_[pos];
+            }
+            if (++grainPos_ >= kFrameSize) grainPos_ = 0;
+        }
         outL[i] = dry * inL[i] + wet * grain;
         outR[i] = dry * inR[i] + wet * grain;
     }
 
-    // EQ → Reverb → output gain (scoped to output bus only — VST3 buffer includes sidechain channels)
+    // EQ → Reverb → output gain → limiter (scoped to output bus only — VST3 buffer includes sidechain channels)
     juce::dsp::AudioBlock<float> outputBlock(output);
     eq_.process(outputBlock);
     reverb_.process(outputBlock);
     output.applyGain(0, numSamples, gainOut_.load());
+    limiter_.process(juce::dsp::ProcessContextReplacing<float>(outputBlock));
 
 #if JUCE_DEBUG
     protectYourEars(buffer);
@@ -193,7 +225,7 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
 {
     using namespace ParamIDs;
     if (id == zcrWeight || id == rmsWeight || id == scWeight || id == stWeight || id == rand_)
-        updateMatcherFromParams();
+        matcherDirty_ = true;
     else if (id == gainCtrl)
         gainCtrl_ = juce::Decibels::decibelsToGain(newValue);
     else if (id == gainSrc)

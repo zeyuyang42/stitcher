@@ -28,6 +28,10 @@ CPMAddPackage("gh:catchorg/Catch2@3.7.1")
 set(SourceFiles
     Source/LookAndFeel/StitcherLookAndFeel.h
     Source/LookAndFeel/StitcherLookAndFeel.cpp
+    Source/UI/FeatureMeter.h
+    Source/UI/FeatureMeter.cpp
+    Source/UI/LevelMeter.h
+    Source/UI/LevelMeter.cpp
     Source/PluginEditor.cpp
     Source/PluginEditor.h
     Source/PluginProcessor.cpp

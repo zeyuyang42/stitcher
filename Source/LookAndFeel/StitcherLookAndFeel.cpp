@@ -33,6 +33,10 @@ StitcherLookAndFeel::StitcherLookAndFeel()
     setColour(juce::PopupMenu::textColourId,                    TextBright);
     setColour(juce::PopupMenu::highlightedBackgroundColourId,   Accent.withAlpha(0.25f));
     setColour(juce::PopupMenu::highlightedTextColourId,         Accent);
+    setColour(juce::TextButton::buttonColourId,   Track);
+    setColour(juce::TextButton::buttonOnColourId,  Accent);
+    setColour(juce::TextButton::textColourOffId,   TextBright);
+    setColour(juce::TextButton::textColourOnId,    Background);
 }
 
 void StitcherLookAndFeel::drawRotarySlider(juce::Graphics& g,

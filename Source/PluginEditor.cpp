@@ -62,6 +62,12 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     freezeButton_.setButtonText("Freeze");
     addAndMakeVisible(freezeButton_);
 
+    matchLenSyncButton_.setButtonText("Sync");
+    addAndMakeVisible(matchLenSyncButton_);
+
+    matchLenDivBox_.addItemList({"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 1);
+    addAndMakeVisible(matchLenDivBox_);
+
     for (auto* m : { &zcrMeter_, &rmsMeter_, &scMeter_, &stMeter_,
                      &corpusFillMeter_ })
         addAndMakeVisible(m);
@@ -99,7 +105,22 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     reverbWetAttach_  = std::make_unique<SA>(apvts, ParamIDs::reverbWet,  reverbWetSlider_);
     gainOutAttach_    = std::make_unique<SA>(apvts, ParamIDs::gainOut,    gainOutSlider_);
     mixAttach_        = std::make_unique<SA>(apvts, ParamIDs::mix,        mixSlider_);
-    freezeAttach_     = std::make_unique<BA>(apvts, ParamIDs::freeze,     freezeButton_);
+    freezeAttach_        = std::make_unique<BA>(apvts, ParamIDs::freeze,        freezeButton_);
+    matchLenSyncAttach_  = std::make_unique<BA>(apvts, ParamIDs::matchLenSync, matchLenSyncButton_);
+    matchLenDivAttach_   = std::make_unique<CA>(apvts, ParamIDs::matchLenDiv,  matchLenDivBox_);
+
+    matchLenSyncButton_.onClick = [this] {
+        const bool sync = matchLenSyncButton_.getToggleState();
+        matchLenSlider_.setVisible(!sync);
+        matchLenDivBox_.setVisible(sync);
+        resized();
+    };
+    // Apply initial visibility from APVTS default/restored state
+    {
+        const bool sync = matchLenSyncButton_.getToggleState();
+        matchLenSlider_.setVisible(!sync);
+        matchLenDivBox_.setVisible(sync);
+    }
 
     startTimerHz(30);
 }
@@ -192,17 +213,35 @@ void StitcherEditor::resized()
         }
         r.removeFromTop(gap);
 
-        // Row 2: seek, matchLen, rand
+        // Row 2: seek, matchLen (with sync toggle), rand
+        const int syncBtnH = 18;
         const int kw2 = std::min(90, (r.getWidth() - 6) / 3);
-        const int kh2 = kw2 + labelH;
+        const int kh2 = kw2 + labelH + syncBtnH;
         auto row2 = r.removeFromTop(kh2);
-        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
-                {&seekTimeSlider_, &seekTimeLabel_},
-                {&matchLenSlider_, &matchLenLabel_},
-                {&randSlider_,     &randLabel_} }) {
+        // Seek
+        {
             auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
-            pair.second->setBounds(cell.removeFromTop(labelH));
-            pair.first->setBounds(cell);
+            seekTimeLabel_.setBounds(cell.removeFromTop(labelH));
+            cell.removeFromTop(syncBtnH);
+            seekTimeSlider_.setBounds(cell);
+        }
+        // MatchLen
+        {
+            auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
+            matchLenLabel_.setBounds(cell.removeFromTop(labelH));
+            matchLenSyncButton_.setBounds(cell.removeFromTop(syncBtnH).reduced(2, 2));
+            if (matchLenSlider_.isVisible())
+                matchLenSlider_.setBounds(cell);
+            else
+                matchLenDivBox_.setBounds(
+                    cell.withSizeKeepingCentre(cell.getWidth(), std::min(cell.getHeight(), 24)));
+        }
+        // Rand
+        {
+            auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
+            randLabel_.setBounds(cell.removeFromTop(labelH));
+            cell.removeFromTop(syncBtnH);
+            randSlider_.setBounds(cell);
         }
         r.removeFromTop(gap);
 

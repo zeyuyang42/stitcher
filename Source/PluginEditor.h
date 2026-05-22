@@ -32,6 +32,8 @@ private:
     juce::Slider seekTimeSlider_, matchLenSlider_, randSlider_;
     juce::Slider gainCtrlSlider_, gainSrcSlider_;
     juce::ToggleButton freezeButton_;
+    juce::ToggleButton matchLenSyncButton_;
+    juce::ComboBox     matchLenDivBox_;
 
     juce::Label zcrLabel_, rmsLabel_, scLabel_, stLabel_;
     juce::Label seekTimeLabel_, matchLenLabel_, randLabel_;
@@ -53,6 +55,7 @@ private:
 
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    using CA = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
     std::unique_ptr<SA> zcrAttach_, rmsAttach_, scAttach_, stAttach_;
     std::unique_ptr<SA> seekTimeAttach_, matchLenAttach_, randAttach_;
     std::unique_ptr<SA> gainCtrlAttach_, gainSrcAttach_;
@@ -60,6 +63,8 @@ private:
     std::unique_ptr<SA> reverbRoomAttach_, reverbDampAttach_, reverbWetAttach_;
     std::unique_ptr<SA> gainOutAttach_, mixAttach_;
     std::unique_ptr<BA> freezeAttach_;
+    std::unique_ptr<BA> matchLenSyncAttach_;
+    std::unique_ptr<CA> matchLenDivAttach_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StitcherEditor)
 };

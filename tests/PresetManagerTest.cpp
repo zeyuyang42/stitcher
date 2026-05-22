@@ -123,3 +123,134 @@ TEST_CASE("PresetManager: selectNext/selectPrev cycles through presets") {
 
     tempDir.deleteRecursively();
 }
+
+// Helper: builds a minimal valid preset XML string
+static juce::String makePresetXml(float rmsWeight)
+{
+    return juce::String(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<PARAMETERS>\n"
+        "  <PARAM id=\"zcr_weight\"  value=\"0.0\"/>\n"
+        "  <PARAM id=\"rms_weight\"  value=\"") + juce::String(rmsWeight) + "\"/>\n"
+        "  <PARAM id=\"sc_weight\"   value=\"0.0\"/>\n"
+        "  <PARAM id=\"st_weight\"   value=\"0.0\"/>\n"
+        "  <PARAM id=\"match_len\"   value=\"50.0\"/>\n"
+        "  <PARAM id=\"seek_time\"   value=\"1.0\"/>\n"
+        "  <PARAM id=\"rand\"        value=\"0.0\"/>\n"
+        "  <PARAM id=\"freeze\"      value=\"0\"/>\n"
+        "  <PARAM id=\"gain_ctrl\"   value=\"0.0\"/>\n"
+        "  <PARAM id=\"gain_src\"    value=\"0.0\"/>\n"
+        "  <PARAM id=\"eq_low\"      value=\"0.0\"/>\n"
+        "  <PARAM id=\"eq_mid\"      value=\"0.0\"/>\n"
+        "  <PARAM id=\"eq_high\"     value=\"0.0\"/>\n"
+        "  <PARAM id=\"reverb_room\" value=\"0.5\"/>\n"
+        "  <PARAM id=\"reverb_damp\" value=\"0.5\"/>\n"
+        "  <PARAM id=\"reverb_wet\"  value=\"0.0\"/>\n"
+        "  <PARAM id=\"gain_out\"    value=\"0.0\"/>\n"
+        "  <PARAM id=\"mix\"         value=\"100.0\"/>\n"
+        "</PARAMETERS>\n";
+}
+
+TEST_CASE("PresetManager: factory presets appear before user presets in getPresetNames") {
+    JuceInit init;
+    auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile("StitcherPresetTest_" + juce::String(juce::Time::currentTimeMillis()));
+    tempDir.deleteRecursively();
+
+    DummyProcessor proc;
+    juce::AudioProcessorValueTreeState apvts{proc, nullptr, "P", createParameterLayout()};
+
+    std::vector<PresetManager::FactoryPreset> factory {
+        { "Alpha", "Drums",   makePresetXml(0.7f) },
+        { "Beta",  "Texture", makePresetXml(0.3f) },
+    };
+    PresetManager pm{apvts, tempDir, factory};
+
+    pm.savePreset("Zeta");
+
+    auto names = pm.getPresetNames();
+    REQUIRE(names.size() == 3);
+    REQUIRE(names[0] == "Alpha");
+    REQUIRE(names[1] == "Beta");
+    REQUIRE(names[2] == "Zeta");
+
+    tempDir.deleteRecursively();
+}
+
+TEST_CASE("PresetManager: loadPreset loads factory preset by name") {
+    JuceInit init;
+    auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile("StitcherPresetTest_" + juce::String(juce::Time::currentTimeMillis()));
+    tempDir.deleteRecursively();
+
+    DummyProcessor proc;
+    juce::AudioProcessorValueTreeState apvts{proc, nullptr, "P", createParameterLayout()};
+
+    std::vector<PresetManager::FactoryPreset> factory {
+        { "TestFactory", "Drums", makePresetXml(0.42f) },
+    };
+    PresetManager pm{apvts, tempDir, factory};
+
+    bool loaded = pm.loadPreset("TestFactory");
+    REQUIRE(loaded);
+    REQUIRE(apvts.getRawParameterValue(ParamIDs::rmsWeight)->load() == Catch::Approx(0.42f).margin(0.01f));
+    REQUIRE(pm.getCurrentPresetName() == "TestFactory");
+
+    tempDir.deleteRecursively();
+}
+
+TEST_CASE("PresetManager: selectNext cycles factory then user") {
+    JuceInit init;
+    auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile("StitcherPresetTest_" + juce::String(juce::Time::currentTimeMillis()));
+    tempDir.deleteRecursively();
+
+    DummyProcessor proc;
+    juce::AudioProcessorValueTreeState apvts{proc, nullptr, "P", createParameterLayout()};
+
+    std::vector<PresetManager::FactoryPreset> factory {
+        { "Factory1", "Drums",   makePresetXml(0.1f) },
+        { "Factory2", "Texture", makePresetXml(0.2f) },
+    };
+    PresetManager pm{apvts, tempDir, factory};
+    pm.savePreset("UserA");
+
+    pm.setCurrentPresetName("Factory1");
+    pm.selectNext();
+    REQUIRE(pm.getCurrentPresetName() == "Factory2");
+    pm.selectNext();
+    REQUIRE(pm.getCurrentPresetName() == "UserA");
+    pm.selectNext();
+    REQUIRE(pm.getCurrentPresetName() == "Factory1");
+
+    tempDir.deleteRecursively();
+}
+
+TEST_CASE("PresetManager: getCategoryNames returns factory categories in insertion order") {
+    JuceInit init;
+    auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile("StitcherPresetTest_" + juce::String(juce::Time::currentTimeMillis()));
+    tempDir.deleteRecursively();
+
+    DummyProcessor proc;
+    juce::AudioProcessorValueTreeState apvts{proc, nullptr, "P", createParameterLayout()};
+
+    std::vector<PresetManager::FactoryPreset> factory {
+        { "P1", "Drums",   makePresetXml(0.1f) },
+        { "P2", "Texture", makePresetXml(0.2f) },
+        { "P3", "Drums",   makePresetXml(0.3f) },
+    };
+    PresetManager pm{apvts, tempDir, factory};
+
+    auto cats = pm.getCategoryNames();
+    REQUIRE(cats.size() == 2);
+    REQUIRE(cats[0] == "Drums");
+    REQUIRE(cats[1] == "Texture");
+
+    auto drumNames = pm.getPresetNamesInCategory("Drums");
+    REQUIRE(drumNames.size() == 2);
+    REQUIRE(drumNames.contains("P1"));
+    REQUIRE(drumNames.contains("P3"));
+
+    tempDir.deleteRecursively();
+}

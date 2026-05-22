@@ -206,7 +206,7 @@ bool StitcherProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor* StitcherProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new StitcherEditor(*this);
 }
 
 void StitcherProcessor::getStateInformation(juce::MemoryBlock& destData)

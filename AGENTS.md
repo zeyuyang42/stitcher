@@ -35,6 +35,32 @@ Tests compile Source `.cpp` files directly (not via a library target). Test bina
 - Entrypoint: `Source/PluginProcessor.cpp` → `createPluginFilter()` returns `new StitcherProcessor`.
 - Editor is `StitcherEditor` (custom 4-section UI in `Source/PluginEditor.h/.cpp`).
 - Company: Absinthismus, Plugin code: CSS1, Manufacturer code: Ab42.
+- LookAndFeel: `StitcherLookAndFeel` (dark theme, amber accents, Inter font via BinaryData).
+- Preset bar: `PresetBar` component at top — save/load/next/prev/init, A/B state slots.
+- Factory presets: 51 XMLs embedded via `juce_add_binary_data`; `makeFactoryPresets()` in `FactoryPresets.h` registers them with `PresetManager`.
+- MIDI learn: `MidiLearn` in `Source/MidiLearn.h/.cpp` — right-click any knob → bind CC.
+
+### Source layout
+```
+Source/
+  LookAndFeel/StitcherLookAndFeel.h/.cpp  — custom JUCE LookAndFeel_V4
+  UI/PresetBar.h/.cpp      — top-strip preset nav + A/B slots
+  UI/FeatureMeter.h/.cpp   — horizontal bargraph for ZCR/RMS/SC/ST
+  UI/LevelMeter.h/.cpp     — stereo peak meter
+  Assets/Fonts/            — Inter-Regular.ttf (embedded via BinaryData)
+  Assets/Presets/          — 51 factory preset XMLs (embedded via BinaryData)
+  PluginEditor.h/.cpp
+  PluginProcessor.h/.cpp
+  Parameters.h             — 20 APVTS parameter IDs
+  FeatureExtractor.h/.cpp
+  CorpusStore.h/.cpp
+  ConcatenativeMatcher.h/.cpp
+  EQProcessor.h/.cpp
+  ReverbProcessor.h/.cpp
+  PresetManager.h/.cpp     — save/load/factory preset management
+  FactoryPresets.h         — makeFactoryPresets() — owned by editor, not processor
+  MidiLearn.h/.cpp         — lock-free MIDI CC → parameter binding
+```
 
 ### Signal chain (order matters)
 1. Stereo→mono mix of both inputs → `ctrlAccum_` / `srcAccum_` (for features); raw stereo → `srcAccumL_`/`srcAccumR_` (for corpus audio)
@@ -54,7 +80,7 @@ Tests compile Source `.cpp` files directly (not via a library target). Test bina
 - Guard: `sidechain.getNumChannels() >= 2` check before processing.
 
 ### Constants and load-time parameters
-- Frame size: driven by `matchLen` parameter (10–100 ms, rounded to nearest power of two, min 64, max 8192 samples). Resolved at `prepareToPlay` — requires plugin reload to take effect.
+- Frame size: driven by `matchLen` parameter (10–100 ms, nearest power of two, min 64, max 8192). When `matchLenSync=true`, resolved from host BPM + `matchLenDiv` subdivision at `prepareToPlay`. Requires plugin reload to take effect.
 - Crossfade length: **256 samples** (~5.8 ms at 44.1 kHz), constant.
 - `seekTime` drives corpus capacity (`seekTime * sampleRate / frameSize + 1` frames) at `prepareToPlay`.
 
@@ -63,6 +89,16 @@ Parameters modified on the message thread, consumed on the audio thread. Use the
 - `std::atomic<bool>` dirty flags: `eqDirty_`, `reverbDirty_`, `matcherDirty_`
 - `std::atomic<float>` / `std::atomic<bool>` for direct reads: `gainCtrl_`, `gainSrc_`, `gainOut_`, `mix_`, `freeze_`
 - New parameters must follow this pattern — never read `juce::AudioParameterFloat` values on the audio thread.
+
+**MidiLearn thread model:**
+- `midiLearn_.handleCC()` — audio thread only; reads `ccToParam_[cc]` atomically.
+- `midiLearn_.processCapture()` — message thread only (called from 30 Hz timer); finalizes bindings after a learn capture by draining `capturedCC_` atomic.
+- `ccToParam_[128]` is `std::array<std::atomic<RangedAudioParameter*>, 128>` — lock-free.
+
+**Live meter atomics** (processor → editor, 30 Hz timer):
+- `lastCtrlZcr_`, `lastCtrlRms_`, `lastCtrlSc_`, `lastCtrlSt_` — latest ctrl feature values
+- `lastCorpusFill_` — corpus fill ratio (0–1)
+- `lastOutPeakL_`, `lastOutPeakR_` — post-limiter peak levels
 
 ## Docs
 - `docs/dsp-review.md` — canonical self-review with tracked issues and design decisions.

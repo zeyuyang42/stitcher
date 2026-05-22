@@ -32,11 +32,16 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 - **Feature matching** — ZCR, RMS, spectral centroid, spectral tilt (independent weights per feature)
 - **Hann-windowed FFT** — accurate spectral features with no leakage from the analysis window
 - **Configurable frame size** — `matchLen` (10–100 ms) sets the analysis/grain size at load time (nearest power of two); `seekTime` (1–5 s) sets corpus depth
+- **Tempo-sync** — toggle sync on the Match Len knob to lock grain size to a host BPM subdivision (1/16 through 2/1)
 - **Position-aligned crossfade** — 256-sample crossfade between consecutive grains eliminates boundary clicks without resetting playback position
 - **Grain-only EQ** — 3-band EQ shapes the grain signal before the dry/wet blend; dry path is unaffected
 - **Randomness** — blend between deterministic best-match and random near-match selection
 - **Reverb** — room size, damping, wet level
 - **Freeze** — lock corpus to prevent new frames from being written
+- **Custom UI** — dark theme with amber accents, Inter font, value-arc rotary knobs, live feature meters, corpus fill indicator, stereo output level meter
+- **Preset bank** — 51 factory presets across 8 categories (Utility, Drums, Texture, Glitch, Vocal, Lo-Fi, Tonal, FX) plus user preset save/load
+- **A/B state slots** — capture and recall two parameter snapshots for instant comparison
+- **MIDI learn** — right-click any knob and assign a MIDI CC; bindings persist with the DAW project
 
 ## Parameters
 
@@ -47,6 +52,8 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 | | S.Centroid Weight | 0–1 | Brightness matching weight |
 | | S.Tilt Weight | 0–1 | High-frequency energy matching weight |
 | | Match Len | 10–100 ms | Analysis/grain frame size (load-time) |
+| | Match Len Sync | on/off | Lock Match Len to host BPM subdivision |
+| | Match Len Div | 1/16–2/1 | Subdivision when sync is on |
 | | Seek Time | 1–5 s | Corpus rolling-window depth (load-time) |
 | | Rand | 0–1 | Randomness among near-best matches |
 | | Ctrl Gain | −24–+24 dB | Scales sidechain before feature extraction |
@@ -74,7 +81,7 @@ cmake --build build --target Stitcher_pluginval_cli  # pluginval format validati
 
 ## Testing
 
-- **Unit tests** — 31 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor
+- **Unit tests** — 44 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, PresetManager, MidiLearn
 - **Plugin validation** — pluginval at strictness level 5 against AU
 
 ## Usage
@@ -87,6 +94,19 @@ The plugin requires two stereo inputs:
 In most DAWs, route the sidechain via the plugin's side-chain input. If the sidechain is unconnected, the plugin outputs silence (corpus still accumulates from the main input).
 
 ## Changelog
+
+### v0.2.0 — ui-presets cycle (2026-05-22 – 2026-05-23)
+
+- **Custom LookAndFeel** — dark theme (#1A1A1F background, amber #FFA84C accents), value-arc rotary knobs, Inter font embedded via BinaryData
+- **Preset bar** — save / save-as / load / init / prev / next controls across the full top strip; user presets stored as XML in `~/Library/Application Support/Stitcher/Presets/User/`
+- **51 factory presets** — embedded in binary across 8 categories: Utility, Drums, Texture, Glitch, Vocal, Lo-Fi, Tonal, FX
+- **Live feature meters** — per-feature (ZCR/RMS/SC/ST) horizontal bargraphs alongside weight knobs, dimmed when weight = 0
+- **Corpus fill indicator** — thin progress bar shows how full the rolling corpus buffer is
+- **Stereo output level meter** — peak meter in the Output section driven by post-limiter atomics
+- **Tempo-sync match len** — Sync toggle + subdivision dropdown (1/16–2/1) locks grain size to host BPM
+- **A/B state slots** — four buttons in the preset bar (A+ / A / B+ / B) for instant parameter snapshot comparison (session-local)
+- **MIDI learn** — right-click any knob → "Learn MIDI CC" → bind next incoming CC; bindings persist with DAW project state
+- **Crash fix** — null `Typeface::Ptr` guard in `StitcherLookAndFeel` constructor prevents SIGSEGV in LTO builds
 
 ### dsp-finetune cycle (2026-04-01 – 2026-05-22)
 

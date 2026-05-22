@@ -48,6 +48,8 @@ set(SourceFiles
     Source/EQProcessor.cpp
     Source/ReverbProcessor.h
     Source/ReverbProcessor.cpp
+    Source/PresetManager.h
+    Source/PresetManager.cpp
 )
 
 juce_add_plugin(${PROJECT_NAME}

@@ -26,6 +26,7 @@ StitcherProcessor::StitcherProcessor()
     using namespace ParamIDs;
     for (auto* id : { zcrWeight, rmsWeight, scWeight, stWeight,
                       matchLen, seekTime, rand_,
+                      matchLenSync, matchLenDiv,
                       gainCtrl, gainSrc,
                       eqLow, eqMid, eqHigh,
                       reverbRoom, reverbDamp, reverbWet,
@@ -51,8 +52,17 @@ void StitcherProcessor::changeProgramName(int, const juce::String&) {}
 void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     // Compute frame size from matchLen parameter (nearest power of 2, load-time only)
-    float matchLenMs = apvts_.getRawParameterValue(ParamIDs::matchLen)->load();
-    frameSize_ = nearestPow2(static_cast<double>(matchLenMs) * sampleRate / 1000.0);
+    const bool sync = apvts_.getRawParameterValue(ParamIDs::matchLenSync)->load() > 0.5f;
+    if (sync) {
+        static const double kDivisions[] = { 0.0625, 0.125, 0.25, 0.375, 0.5, 1.0, 2.0 };
+        const int divIdx = juce::jlimit(0, 6,
+            static_cast<int>(apvts_.getRawParameterValue(ParamIDs::matchLenDiv)->load()));
+        const double bpm = lastKnownBpm_.load(std::memory_order_relaxed);
+        frameSize_ = nearestPow2(kDivisions[divIdx] * 60.0 / bpm * sampleRate);
+    } else {
+        float matchLenMs = apvts_.getRawParameterValue(ParamIDs::matchLen)->load();
+        frameSize_ = nearestPow2(static_cast<double>(matchLenMs) * sampleRate / 1000.0);
+    }
     jassert(frameSize_ > kXfadeLen);
 
     juce::dsp::ProcessSpec spec;
@@ -127,6 +137,11 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 {
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
+
+    if (auto* ph = getPlayHead())
+        if (auto pos = ph->getPosition())
+            if (pos->getBpm().hasValue())
+                lastKnownBpm_.store(*pos->getBpm(), std::memory_order_relaxed);
 
     if (matcherDirty_.exchange(false))
         updateMatcherFromParams();

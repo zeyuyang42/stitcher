@@ -50,6 +50,7 @@ public:
 
 private:
     int frameSize_ = 1024;  // set in prepareToPlay from matchLen parameter
+    std::atomic<double> lastKnownBpm_ { 120.0 };
 
     juce::UndoManager undoManager_;
     juce::AudioProcessorValueTreeState apvts_;

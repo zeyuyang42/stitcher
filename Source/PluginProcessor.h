@@ -41,7 +41,7 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
 
 private:
-    static constexpr int kFrameSize = 1024;
+    int frameSize_ = 1024;  // set in prepareToPlay from matchLen parameter
 
     juce::UndoManager undoManager_;
     juce::AudioProcessorValueTreeState apvts_;
@@ -62,9 +62,6 @@ private:
 
     // Grain double-buffer for position-aligned crossfade
     static constexpr int kXfadeLen = 256;   // ~5.8ms at 44.1kHz
-    static_assert(kXfadeLen < kFrameSize,
-        "kXfadeLen must be less than kFrameSize: a new grain arrives every kFrameSize samples, "
-        "so a crossfade must complete before the next grain update.");
     std::vector<float> currentGrain_;
     std::vector<float> nextGrain_;
     int  grainPos_   = 0;

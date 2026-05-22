@@ -2,6 +2,20 @@
 #include "PluginEditor.h"
 #include "ProtectYourEars.h"
 
+namespace {
+// Returns the power of two nearest to x, clamped to [64, 8192].
+int nearestPow2(double x)
+{
+    const int raw = static_cast<int>(x + 0.5);
+    if (raw <= 64)   return 64;
+    if (raw >= 8192) return 8192;
+    int p = 64;
+    while (p * 2 <= raw) p <<= 1;
+    // p = largest power of 2 <= raw; p*2 = smallest power of 2 > raw
+    return ((raw - p) <= (p * 2 - raw)) ? p : p * 2;
+}
+} // namespace
+
 StitcherProcessor::StitcherProcessor()
     : AudioProcessor(BusesProperties()
           .withInput ("Input",     juce::AudioChannelSet::stereo(), true)
@@ -36,28 +50,33 @@ void StitcherProcessor::changeProgramName(int, const juce::String&) {}
 
 void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    // Compute frame size from matchLen parameter (nearest power of 2, load-time only)
+    float matchLenMs = apvts_.getRawParameterValue(ParamIDs::matchLen)->load();
+    frameSize_ = nearestPow2(static_cast<double>(matchLenMs) * sampleRate / 1000.0);
+    jassert(frameSize_ > kXfadeLen);
+
     juce::dsp::ProcessSpec spec;
     spec.sampleRate       = sampleRate;
     spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels      = 2;
 
-    featureExtractor_.prepare(kFrameSize);
+    featureExtractor_.prepare(frameSize_);
 
     float seekTime = apvts_.getRawParameterValue(ParamIDs::seekTime)->load();
-    int maxFrames  = static_cast<int>(seekTime * sampleRate / kFrameSize) + 1;
-    corpus_.prepare(kFrameSize, maxFrames);
+    int maxFrames  = static_cast<int>(seekTime * sampleRate / frameSize_) + 1;
+    corpus_.prepare(frameSize_, maxFrames);
 
-    matcher_.prepare(kFrameSize);
+    matcher_.prepare(frameSize_);
     eq_.prepare(spec);
     reverb_.prepare(spec);
     limiter_.prepare(spec);
     limiter_.setThreshold(-1.0f);  // -1 dBFS ceiling
     limiter_.setRelease(50.0f);    // 50 ms release
 
-    ctrlAccum_.assign(kFrameSize, 0.f);
-    srcAccum_.assign(kFrameSize, 0.f);
-    currentGrain_.assign(kFrameSize, 0.f);
-    nextGrain_.assign(kFrameSize, 0.f);
+    ctrlAccum_.assign(frameSize_, 0.f);
+    srcAccum_.assign(frameSize_, 0.f);
+    currentGrain_.assign(frameSize_, 0.f);
+    nextGrain_.assign(frameSize_, 0.f);
     ctrlMono_.assign(samplesPerBlock, 0.f);
     srcMono_.assign(samplesPerBlock, 0.f);
     accumPos_   = 0;
@@ -137,9 +156,9 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         srcAccum_[accumPos_]  = srcMono_[i]  * gainSrc_.load();
         ++accumPos_;
 
-        if (accumPos_ == kFrameSize) {
-            Features srcFeatures  = featureExtractor_.extract(srcAccum_.data(),  kFrameSize);
-            Features ctrlFeatures = featureExtractor_.extract(ctrlAccum_.data(), kFrameSize);
+        if (accumPos_ == frameSize_) {
+            Features srcFeatures  = featureExtractor_.extract(srcAccum_.data(),  frameSize_);
+            Features ctrlFeatures = featureExtractor_.extract(ctrlAccum_.data(), frameSize_);
 
             corpus_.push(srcAccum_.data(), srcFeatures);
 
@@ -147,13 +166,13 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             if (matched != nullptr) {
                 if (!grainReady_) {
                     // First grain: load directly and start playing from position 0
-                    std::copy(matched, matched + kFrameSize, currentGrain_.begin());
+                    std::copy(matched, matched + frameSize_, currentGrain_.begin());
                     grainPos_   = 0;
                     grainReady_ = true;
                 } else {
                     // Subsequent grains: start position-aligned crossfade
                     // grainPos_ is NOT reset — we continue from the current playback position
-                    std::copy(matched, matched + kFrameSize, nextGrain_.begin());
+                    std::copy(matched, matched + frameSize_, nextGrain_.begin());
                     xfadePos_ = 0;
                     xfading_  = true;
                 }
@@ -184,7 +203,7 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             } else {
                 grain = currentGrain_[pos];
             }
-            if (++grainPos_ >= kFrameSize) grainPos_ = 0;
+            if (++grainPos_ >= frameSize_) grainPos_ = 0;
         }
         outL[i] = dry * inL[i] + wet * grain;
         outR[i] = dry * inR[i] + wet * grain;
@@ -242,8 +261,8 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
         reverbDirty_ = true;
     else if (id == ParamIDs::seekTime || id == ParamIDs::matchLen)
     {
-        // seekTime: corpus capacity is fixed at prepareToPlay; resize not supported at runtime.
-        // matchLen: frame size is fixed at kFrameSize (1024 samples); param is reserved for future use.
+        // seekTime and matchLen take effect on next prepareToPlay (plugin reload).
+        // Runtime resize of circular buffers is not supported.
     }
 }
 

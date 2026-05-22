@@ -53,12 +53,14 @@ set(SourceFiles
     Source/PresetManager.h
     Source/PresetManager.cpp
     Source/FactoryPresets.h
+    Source/MidiLearn.h
+    Source/MidiLearn.cpp
 )
 
 juce_add_plugin(${PROJECT_NAME}
     COMPANY_NAME                 ${COMPANY_NAME}
     IS_SYNTH                     FALSE
-    NEEDS_MIDI_INPUT             FALSE
+    NEEDS_MIDI_INPUT             TRUE
     NEEDS_MIDI_OUTPUT            FALSE
     IS_MIDI_EFFECT               FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS  FALSE

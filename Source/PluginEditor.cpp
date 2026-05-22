@@ -131,6 +131,31 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
         matchLenDivBox_.setVisible(sync);
     }
 
+    // ── MIDI Learn: map each slider to its APVTS parameter ─────────────────
+    sliderToParam_ = {
+        { &zcrSlider_,         dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::zcrWeight))  },
+        { &rmsSlider_,         dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rmsWeight))  },
+        { &scSlider_,          dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::scWeight))   },
+        { &stSlider_,          dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::stWeight))   },
+        { &seekTimeSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::seekTime))   },
+        { &matchLenSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::matchLen))   },
+        { &randSlider_,        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))      },
+        { &gainCtrlSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainCtrl))   },
+        { &gainSrcSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainSrc))    },
+        { &eqLowSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqLow))      },
+        { &eqMidSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqMid))      },
+        { &eqHighSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqHigh))     },
+        { &reverbRoomSlider_,  dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbRoom)) },
+        { &reverbDampSlider_,  dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbDamp)) },
+        { &reverbWetSlider_,   dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbWet))  },
+        { &gainOutSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainOut))    },
+        { &mixSlider_,         dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::mix))        },
+    };
+
+    // Install this editor as a mouse listener on every slider for right-click menus.
+    for (auto& [slider, param] : sliderToParam_)
+        slider->addMouseListener(this, false);
+
     startTimerHz(30);
 }
 
@@ -142,6 +167,9 @@ StitcherEditor::~StitcherEditor()
 
 void StitcherEditor::timerCallback()
 {
+    // Drain any pending MIDI learn capture from the audio thread.
+    audioProcessor.getMidiLearn().processCapture();
+
     auto& proc  = audioProcessor;
     auto& apvts = proc.getAPVTS();
 
@@ -164,6 +192,40 @@ void StitcherEditor::timerCallback()
     stMeter_.repaint();
     corpusFillMeter_.repaint();
     levelMeter_.repaint();
+}
+
+void StitcherEditor::mouseDown(const juce::MouseEvent& e)
+{
+    if (!e.mods.isRightButtonDown())
+        return;
+    auto* slider = dynamic_cast<juce::Slider*>(e.eventComponent);
+    if (slider == nullptr)
+        return;
+    auto it = sliderToParam_.find(slider);
+    if (it == sliderToParam_.end())
+        return;
+    showMidiLearnMenu(slider);
+}
+
+void StitcherEditor::showMidiLearnMenu(juce::Slider* slider)
+{
+    auto* param    = sliderToParam_.at(slider);
+    auto& ml       = audioProcessor.getMidiLearn();
+    const int curCC = ml.getCCForParam(param);
+
+    juce::PopupMenu menu;
+    menu.addItem(1, "Learn MIDI CC");
+    if (curCC >= 0)
+        menu.addItem(2, "Unbind CC " + juce::String(curCC));
+
+    menu.showMenuAsync(juce::PopupMenu::Options{},
+        [this, param](int result) {
+            auto& ml = audioProcessor.getMidiLearn();
+            if (result == 1)
+                ml.startLearning(param);
+            else if (result == 2)
+                ml.unbind(ml.getCCForParam(param));
+        });
 }
 
 void StitcherEditor::paint(juce::Graphics& g)

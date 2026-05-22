@@ -4,11 +4,13 @@ add_executable(StitcherTests
     ConcatenativeMatcherTest.cpp
     EQProcessorTest.cpp
     PresetManagerTest.cpp
+    MidiLearnTest.cpp
     ${CMAKE_SOURCE_DIR}/Source/FeatureExtractor.cpp
     ${CMAKE_SOURCE_DIR}/Source/CorpusStore.cpp
     ${CMAKE_SOURCE_DIR}/Source/ConcatenativeMatcher.cpp
     ${CMAKE_SOURCE_DIR}/Source/EQProcessor.cpp
     ${CMAKE_SOURCE_DIR}/Source/PresetManager.cpp
+    ${CMAKE_SOURCE_DIR}/Source/MidiLearn.cpp
 )
 
 target_include_directories(StitcherTests PRIVATE

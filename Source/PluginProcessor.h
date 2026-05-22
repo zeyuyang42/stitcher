@@ -6,6 +6,7 @@
 #include "ConcatenativeMatcher.h"
 #include "EQProcessor.h"
 #include "ReverbProcessor.h"
+#include "MidiLearn.h"
 
 class StitcherProcessor : public juce::AudioProcessor,
                           public juce::AudioProcessorValueTreeState::Listener {
@@ -39,6 +40,7 @@ public:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
+    MidiLearn& getMidiLearn() { return midiLearn_; }
 
     float getLastCtrlZcr()    const noexcept { return lastCtrlZcr_.load(); }
     float getLastCtrlRms()    const noexcept { return lastCtrlRms_.load(); }
@@ -54,6 +56,8 @@ private:
 
     juce::UndoManager undoManager_;
     juce::AudioProcessorValueTreeState apvts_;
+
+    MidiLearn            midiLearn_;
 
     FeatureExtractor     featureExtractor_;
     CorpusStore          corpus_;

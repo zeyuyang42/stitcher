@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include <map>
 #include "PluginProcessor.h"
 #include "LookAndFeel/StitcherLookAndFeel.h"
 #include "PresetManager.h"
@@ -15,8 +16,13 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    // MouseListener override: intercepts right-clicks on sliders.
+    // Component (base of AudioProcessorEditor) already inherits MouseListener.
+    void mouseDown(const juce::MouseEvent& e) override;
+
 private:
     void timerCallback() override;
+    void showMidiLearnMenu(juce::Slider* slider);
 
     StitcherProcessor& audioProcessor;
 
@@ -65,6 +71,9 @@ private:
     std::unique_ptr<BA> freezeAttach_;
     std::unique_ptr<BA> matchLenSyncAttach_;
     std::unique_ptr<CA> matchLenDivAttach_;
+
+    // MIDI Learn: maps each slider to its bound APVTS parameter
+    std::map<juce::Slider*, juce::RangedAudioParameter*> sliderToParam_;
 
     // A/B state slots — session-local, not persisted
     juce::ValueTree abSlots_[2];

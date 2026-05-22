@@ -34,6 +34,11 @@ StitcherProcessor::StitcherProcessor()
         apvts_.addParameterListener(id, this);
 
     apvts_.addParameterListener(freeze, this);
+
+    // Register all APVTS parameters with MidiLearn.
+    for (auto* p : getParameters())
+        if (auto* rp = dynamic_cast<juce::RangedAudioParameter*>(p))
+            midiLearn_.registerParam(rp);
 }
 
 StitcherProcessor::~StitcherProcessor() {}
@@ -135,8 +140,14 @@ bool StitcherProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                       juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
+
+    // Dispatch MIDI CC messages to MidiLearn (handles both learn capture and dispatch).
+    for (const auto meta : midiMessages) {
+        const auto& msg = meta.getMessage();
+        if (msg.isController())
+            midiLearn_.handleCC(msg.getControllerNumber(), msg.getControllerValue());
+    }
 
     if (auto* ph = getPlayHead())
         if (auto pos = ph->getPosition())
@@ -310,14 +321,27 @@ juce::AudioProcessorEditor* StitcherProcessor::createEditor()
 
 void StitcherProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    copyXmlToBinary(*apvts_.copyState().createXml(), destData);
+    auto rootXml = apvts_.copyState().createXml();
+    rootXml->addChildElement(midiLearn_.createBindingsXml()); // owned by rootXml
+    copyXmlToBinary(*rootXml, destData);
 }
 
 void StitcherProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml && xml->hasTagName(apvts_.state.getType()))
+    if (!xml)
+        return;
+
+    // Restore APVTS state (the root element is the APVTS state tree).
+    if (xml->hasTagName(apvts_.state.getType())) {
+        // Extract and remove MIDI_LEARN child before handing to APVTS
+        // (APVTS ignores unknown children, but let's be explicit).
+        auto* mlXml = xml->getChildByName("MIDI_LEARN");
+        if (mlXml != nullptr)
+            midiLearn_.restoreBindingsXml(mlXml, getParameters());
+
         apvts_.replaceState(juce::ValueTree::fromXml(*xml));
+    }
 }
 
 void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)

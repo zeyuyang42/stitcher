@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "UI/FeatureMeter.h"
 #include "UI/LevelMeter.h"
+#include "FactoryPresets.h"
 
 namespace {
 
@@ -29,7 +30,7 @@ void layoutRotary(juce::Slider& s, juce::Label& l, juce::Rectangle<int> area)
 StitcherEditor::StitcherEditor(StitcherProcessor& p)
     : AudioProcessorEditor(&p),
       audioProcessor(p),
-      presetManager_(p.getAPVTS()),
+      presetManager_(p.getAPVTS(), PresetManager::getUserPresetsDir(), makeFactoryPresets()),
       presetBar_(presetManager_)
 {
     setLookAndFeel(&lnf_);

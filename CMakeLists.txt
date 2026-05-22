@@ -52,6 +52,7 @@ set(SourceFiles
     Source/ReverbProcessor.cpp
     Source/PresetManager.h
     Source/PresetManager.cpp
+    Source/FactoryPresets.h
 )
 
 juce_add_plugin(${PROJECT_NAME}
@@ -72,6 +73,65 @@ juce_add_plugin(${PROJECT_NAME}
 juce_add_binary_data(StitcherBinaryData
     SOURCES
         Source/Assets/Fonts/Inter-Regular.ttf
+        # Utility
+        Source/Assets/Presets/Utility_Init.xml
+        Source/Assets/Presets/Utility_Passthrough.xml
+        Source/Assets/Presets/Utility_FullCorpus.xml
+        # Drums
+        Source/Assets/Presets/Drums_KickFollower.xml
+        Source/Assets/Presets/Drums_SnareSnatcher.xml
+        Source/Assets/Presets/Drums_HatScatter.xml
+        Source/Assets/Presets/Drums_DrumCrush.xml
+        Source/Assets/Presets/Drums_PercGhost.xml
+        Source/Assets/Presets/Drums_RoomDrums.xml
+        Source/Assets/Presets/Drums_GlueLayer.xml
+        Source/Assets/Presets/Drums_BeatGranule.xml
+        # Texture
+        Source/Assets/Presets/Texture_AetherPad.xml
+        Source/Assets/Presets/Texture_CrystalChoir.xml
+        Source/Assets/Presets/Texture_SilkTexture.xml
+        Source/Assets/Presets/Texture_FrozenAir.xml
+        Source/Assets/Presets/Texture_WarmBlanket.xml
+        Source/Assets/Presets/Texture_SpectralDrift.xml
+        Source/Assets/Presets/Texture_ShimmerHalo.xml
+        Source/Assets/Presets/Texture_DeepSpace.xml
+        Source/Assets/Presets/Texture_VelvetNoise.xml
+        Source/Assets/Presets/Texture_Nebula.xml
+        # Glitch
+        Source/Assets/Presets/Glitch_MicroStutter.xml
+        Source/Assets/Presets/Glitch_Shatter.xml
+        Source/Assets/Presets/Glitch_DataRot.xml
+        Source/Assets/Presets/Glitch_GranularMelt.xml
+        Source/Assets/Presets/Glitch_TimeSplice.xml
+        Source/Assets/Presets/Glitch_BitCrumble.xml
+        Source/Assets/Presets/Glitch_PulseScatter.xml
+        Source/Assets/Presets/Glitch_ChaosEngine.xml
+        # Vocal
+        Source/Assets/Presets/Vocal_VowelLock.xml
+        Source/Assets/Presets/Vocal_ChoirSmear.xml
+        Source/Assets/Presets/Vocal_FormantFreeze.xml
+        Source/Assets/Presets/Vocal_BreathExtract.xml
+        Source/Assets/Presets/Vocal_SyllableEcho.xml
+        Source/Assets/Presets/Vocal_Haunt.xml
+        # LoFi
+        Source/Assets/Presets/LoFi_TapeWarp.xml
+        Source/Assets/Presets/LoFi_VinylDust.xml
+        Source/Assets/Presets/LoFi_OldRadio.xml
+        Source/Assets/Presets/LoFi_LoPad.xml
+        Source/Assets/Presets/LoFi_WashedOut.xml
+        Source/Assets/Presets/LoFi_Nostalgic.xml
+        # Tonal
+        Source/Assets/Presets/Tonal_PitchTrace.xml
+        Source/Assets/Presets/Tonal_HarmonicCloud.xml
+        Source/Assets/Presets/Tonal_SingleWeight.xml
+        Source/Assets/Presets/Tonal_BrightChord.xml
+        Source/Assets/Presets/Tonal_BassFoundation.xml
+        # FX
+        Source/Assets/Presets/FX_RiserBuild.xml
+        Source/Assets/Presets/FX_FreezeSwell.xml
+        Source/Assets/Presets/FX_ChaosRiser.xml
+        Source/Assets/Presets/FX_ReverseGrain.xml
+        Source/Assets/Presets/FX_NoiseBloom.xml
 )
 
 # pluginval must come after juce_add_plugin

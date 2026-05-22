@@ -6,8 +6,14 @@ PresetBar::PresetBar(PresetManager& pm) : presetManager_(pm)
     presetNameLabel_.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(presetNameLabel_);
 
-    for (auto* b : { &prevButton_, &nextButton_, &saveButton_, &saveAsButton_, &initButton_ })
+    for (auto* b : { &prevButton_, &nextButton_, &saveButton_, &saveAsButton_, &initButton_,
+                     &slotCaptureA_, &slotLoadA_, &slotCaptureB_, &slotLoadB_ })
         addAndMakeVisible(b);
+
+    slotCaptureA_.onClick = [this] { if (onCaptureSlot) onCaptureSlot(0); };
+    slotLoadA_   .onClick = [this] { if (onLoadSlot)    onLoadSlot(0); };
+    slotCaptureB_.onClick = [this] { if (onCaptureSlot) onCaptureSlot(1); };
+    slotLoadB_   .onClick = [this] { if (onLoadSlot)    onLoadSlot(1); };
 
     prevButton_.onClick = [this] {
         presetManager_.selectPrev();
@@ -42,14 +48,20 @@ void PresetBar::resized()
 {
     auto r = getLocalBounds().reduced(2);
     const int btnW   = 28;
+    const int abBtnW = 26;
     const int actionW = 68;
     const int gap    = 4;
 
-    prevButton_  .setBounds(r.removeFromLeft(btnW));    r.removeFromLeft(gap);
-    nextButton_  .setBounds(r.removeFromRight(btnW));   r.removeFromRight(gap);
-    initButton_  .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
-    saveAsButton_.setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
-    saveButton_  .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
+    prevButton_   .setBounds(r.removeFromLeft(btnW));     r.removeFromLeft(gap);
+    nextButton_   .setBounds(r.removeFromRight(btnW));    r.removeFromRight(gap);
+    initButton_   .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
+    saveAsButton_ .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
+    saveButton_   .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
+    // A/B slot controls: [Cap A] [A] gap [Cap B] [B]
+    slotLoadB_    .setBounds(r.removeFromRight(abBtnW));  r.removeFromRight(2);
+    slotCaptureB_ .setBounds(r.removeFromRight(abBtnW));  r.removeFromRight(gap);
+    slotLoadA_    .setBounds(r.removeFromRight(abBtnW));  r.removeFromRight(2);
+    slotCaptureA_ .setBounds(r.removeFromRight(abBtnW));  r.removeFromRight(gap);
     presetNameLabel_.setBounds(r);
 }
 

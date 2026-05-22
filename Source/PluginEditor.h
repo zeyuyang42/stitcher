@@ -66,5 +66,8 @@ private:
     std::unique_ptr<BA> matchLenSyncAttach_;
     std::unique_ptr<CA> matchLenDivAttach_;
 
+    // A/B state slots — session-local, not persisted
+    juce::ValueTree abSlots_[2];
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StitcherEditor)
 };

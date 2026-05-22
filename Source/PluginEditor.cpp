@@ -35,6 +35,15 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
 {
     setLookAndFeel(&lnf_);
     addAndMakeVisible(presetBar_);
+
+    presetBar_.onCaptureSlot = [this](int slot) {
+        abSlots_[slot] = audioProcessor.getAPVTS().copyState();
+    };
+    presetBar_.onLoadSlot = [this](int slot) {
+        if (abSlots_[slot].isValid())
+            audioProcessor.getAPVTS().replaceState(abSlots_[slot].createCopy());
+    };
+
     setSize(960, 560);
     setResizable(true, true);
     setResizeLimits(720, 420, 1440, 840);

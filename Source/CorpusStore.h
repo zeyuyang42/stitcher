@@ -3,7 +3,8 @@
 #include <vector>
 
 struct CorpusFrame {
-    std::vector<float> audio;
+    std::vector<float> audioL;
+    std::vector<float> audioR;
     Features features;
 };
 
@@ -13,7 +14,7 @@ public:
     void prepare(int frameSize, int maxFrames);
 
     // Adds a frame (no-op if frozen)
-    void push(const float* audio, const Features& features);
+    void push(const float* audioL, const float* audioR, const Features& features);
 
     // Number of valid frames currently stored (0 to maxFrames)
     int size() const;

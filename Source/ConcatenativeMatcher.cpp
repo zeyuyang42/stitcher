@@ -6,7 +6,8 @@
 void ConcatenativeMatcher::prepare(int frameSize)
 {
     frameSize_ = frameSize;
-    outputBuffer_.assign(frameSize, 0.f);
+    outputBufL_.assign(frameSize, 0.f);
+    outputBufR_.assign(frameSize, 0.f);
     candidates_.reserve(512);  // enough for ~5s corpus at 44.1kHz; avoids alloc on audio thread
 }
 
@@ -29,10 +30,11 @@ float ConcatenativeMatcher::distance(const Features& a, const Features& b) const
                    + wSt_  * sq(a.st  - b.st));
 }
 
-const float* ConcatenativeMatcher::match(const Features& controlFeatures,
-                                          const CorpusStore& corpus)
+bool ConcatenativeMatcher::match(const Features& controlFeatures,
+                                  const CorpusStore& corpus,
+                                  const float*& outL, const float*& outR)
 {
-    if (corpus.size() == 0) return nullptr;
+    if (corpus.size() == 0) return false;
 
     // Find best match (minimum distance)
     float minDist = std::numeric_limits<float>::max();
@@ -58,6 +60,9 @@ const float* ConcatenativeMatcher::match(const Features& controlFeatures,
     }
 
     const auto& frame = corpus.getFrame(matchIdx);
-    std::copy(frame.audio.begin(), frame.audio.end(), outputBuffer_.begin());
-    return outputBuffer_.data();
+    std::copy(frame.audioL.begin(), frame.audioL.end(), outputBufL_.begin());
+    std::copy(frame.audioR.begin(), frame.audioR.end(), outputBufR_.begin());
+    outL = outputBufL_.data();
+    outR = outputBufR_.data();
+    return true;
 }

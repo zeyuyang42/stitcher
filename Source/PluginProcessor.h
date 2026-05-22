@@ -55,15 +55,19 @@ private:
 
     // Internal frame accumulation buffers
     std::vector<float> ctrlAccum_;
-    std::vector<float> srcAccum_;
+    std::vector<float> srcAccum_;   // mono mix for feature extraction
+    std::vector<float> srcAccumL_;  // stereo L for corpus audio (raw, gainSrc_ applied post-extraction)
+    std::vector<float> srcAccumR_;  // stereo R for corpus audio
     std::vector<float> ctrlMono_;
     std::vector<float> srcMono_;
     int accumPos_ = 0;
 
     // Grain double-buffer for position-aligned crossfade
     static constexpr int kXfadeLen = 256;   // ~5.8ms at 44.1kHz
-    std::vector<float> currentGrain_;
-    std::vector<float> nextGrain_;
+    std::vector<float> currentGrainL_;
+    std::vector<float> currentGrainR_;
+    std::vector<float> nextGrainL_;
+    std::vector<float> nextGrainR_;
     int  grainPos_   = 0;
     int  xfadePos_   = 0;
     bool xfading_    = false;

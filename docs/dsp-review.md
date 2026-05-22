@@ -4,7 +4,7 @@
 **Branch:** dsp-finetune  
 **Scope:** Full self-review of every DSP component against the design spec and real-time audio constraints.
 
-**Status:** All 3 🔴 bugs and all actionable 🟡/🟢 issues resolved as of 2026-04-02. Issues #7, #8, #9 are documented as by-design. See Issue Summary table for full state.
+**Status:** All 3 🔴 bugs and all actionable 🟡/🟢 issues resolved. Issues #8 and #9 fixed 2026-05-22; Issue #7 (stereo grain) fixed 2026-05-22. See Issue Summary table for full state.
 
 ---
 
@@ -224,14 +224,7 @@ Now returns `5.0` seconds. The DAW will keep processing the plugin for 5 seconds
 
 ✅ ~~🟡~~ **`matchLen` and `seekTime` are now load-time-functional.** `matchLen` drives the analysis frame size (rounded to nearest power of two) at `prepareToPlay` time. `seekTime` already drove corpus capacity at `prepareToPlay`. Both require a plugin reload to take effect, which is documented in their parameter labels.
 
-🟡 **Wet grain is mono (L = R).**
-
-```cpp
-outL[i] = dry * inL[i] + wet * grain;
-outR[i] = dry * inR[i] + wet * grain;
-```
-
-`grain` is a single float, so at `mix=1.0` (full wet), L and R are identical. The corpus is built from a mono mix of the main input, so stereo information from the source is discarded. Dry signal retains stereo. This is expected given the mono corpus design, but users may be surprised that increasing Mix collapses the stereo image.
+✅ ~~🟡~~ **Stereo grain pipeline implemented.** The corpus now stores separate L and R audio per frame (`srcAccumL_`/`srcAccumR_`). `gainSrc_` scales both channels after feature extraction. `matcher_.match()` returns `outL`/`outR` pointers to a 2-channel output buffer. The grain playback and crossfade loop reads `currentGrainL_`/`currentGrainR_` independently. At `mix=1.0`, the wet output preserves the stereo field of the matched corpus frame.
 
 🟢 **`protectYourEars(buffer)` operates on the full buffer** (DEBUG only). In VST3, `buffer` has 4 channels (main + sidechain). If sidechain channels happen to have high amplitude, `protectYourEars` may mute them. Since the sidechain has already been read before this call, there's no functional impact — just a note for debugging.
 
@@ -272,7 +265,7 @@ outR[i] = dry * inR[i] + wet * grain;
 | 4 | ✅ Fixed | FeatureExtractor | ~~No FFT windowing~~ — Hann window applied in `prepare()` (commit 124576d) |
 | 5 | ✅ Fixed | ConcatenativeMatcher | ~~Distance formula squared weights~~ — corrected to `w*(Δf)²` (commit 22a3bba) |
 | 6 | ✅ Fixed | PluginProcessor | ~~matchLen/seekTime misleading~~ — matchLen now drives frame size at prepareToPlay (nearest pow2); seekTime always drove corpus capacity |
-| 7 | ⚙️ By design | PluginProcessor | Wet grain is mono — corpus is mono; increasing Mix collapses stereo image (expected) |
+| 7 | ✅ Fixed | PluginProcessor | ~~Wet grain is mono~~ — stereo grain pipeline: corpus stores L/R, matcher returns stereo, crossfade reads L/R independently (2026-05-22) |
 | 8 | ✅ Fixed | PluginProcessor | ~~`gainSrc_` applied before feature extraction~~ — now applied after extract(), features reflect raw audio |
 | 9 | ✅ Fixed | PluginProcessor | ~~EQ processes dry+wet blend~~ — EQ now applied to grain signal only via grainMixBuf_ staging; dry path unaffected |
 | 10 | ✅ Fixed | CorpusStore | ~~Wrong comment on `newestIndex()`~~ — corrected to "logical index" (commit d66dcfe) |
@@ -292,6 +285,7 @@ outR[i] = dry * inR[i] + wet * grain;
 - Custom UI: 4-section rotary layout replacing GenericAudioProcessorEditor
 - #6: `matchLen` now drives frame size at `prepareToPlay` (nearest power of 2)
 - #8: `gainSrc_` moved post-feature-extraction; features reflect raw source amplitude
-- Issue #9 (grain-only EQ) and #7 (stereo grain pipeline) — see Phase 3b/3a plans
+- #9: Grain-only EQ via `grainMixBuf_` staging; dry path unaffected at `mix=0`
+- #7: Stereo grain pipeline — corpus stores L/R audio, matcher returns stereo pointers, crossfade and output loop handle L/R independently
 
-**All original 12 issues resolved or documented as fixed.**
+**All 12 issues resolved.**

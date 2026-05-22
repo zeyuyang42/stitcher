@@ -75,8 +75,12 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
     ctrlAccum_.assign(frameSize_, 0.f);
     srcAccum_.assign(frameSize_, 0.f);
-    currentGrain_.assign(frameSize_, 0.f);
-    nextGrain_.assign(frameSize_, 0.f);
+    srcAccumL_.assign(frameSize_, 0.f);
+    srcAccumR_.assign(frameSize_, 0.f);
+    currentGrainL_.assign(frameSize_, 0.f);
+    currentGrainR_.assign(frameSize_, 0.f);
+    nextGrainL_.assign(frameSize_, 0.f);
+    nextGrainR_.assign(frameSize_, 0.f);
     ctrlMono_.assign(samplesPerBlock, 0.f);
     srcMono_.assign(samplesPerBlock, 0.f);
     grainMixBuf_.setSize(2, samplesPerBlock, false, true, false);
@@ -154,7 +158,9 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Accumulate samples into frames; when a frame is complete, analyse + match
     for (int i = 0; i < numSamples; ++i) {
         ctrlAccum_[accumPos_] = ctrlMono_[i] * gainCtrl_.load();
-        srcAccum_[accumPos_]  = srcMono_[i];   // raw — gainSrc_ applied post-extraction
+        srcAccum_[accumPos_]  = srcMono_[i];   // raw mono — gainSrc_ applied post-extraction
+        srcAccumL_[accumPos_] = mainInput.getReadPointer(0)[i];
+        srcAccumR_[accumPos_] = mainInput.getReadPointer(1)[i];
         ++accumPos_;
 
         if (accumPos_ == frameSize_) {
@@ -164,23 +170,28 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             // Apply gainSrc_ to corpus audio AFTER feature extraction so features
             // reflect raw source amplitude — independent of the playback gain knob.
             const float gs = gainSrc_.load();
-            if (gs != 1.f)
-                for (int j = 0; j < frameSize_; ++j)
-                    srcAccum_[j] *= gs;
+            if (gs != 1.f) {
+                for (int j = 0; j < frameSize_; ++j) {
+                    srcAccumL_[j] *= gs;
+                    srcAccumR_[j] *= gs;
+                }
+            }
 
-            corpus_.push(srcAccum_.data(), srcFeatures);
+            corpus_.push(srcAccumL_.data(), srcAccumR_.data(), srcFeatures);
 
-            const float* matched = matcher_.match(ctrlFeatures, corpus_);
-            if (matched != nullptr) {
+            const float* matchedL = nullptr, *matchedR = nullptr;
+            if (matcher_.match(ctrlFeatures, corpus_, matchedL, matchedR)) {
                 if (!grainReady_) {
                     // First grain: load directly and start playing from position 0
-                    std::copy(matched, matched + frameSize_, currentGrain_.begin());
+                    std::copy(matchedL, matchedL + frameSize_, currentGrainL_.begin());
+                    std::copy(matchedR, matchedR + frameSize_, currentGrainR_.begin());
                     grainPos_   = 0;
                     grainReady_ = true;
                 } else {
                     // Subsequent grains: start position-aligned crossfade
                     // grainPos_ is NOT reset — we continue from the current playback position
-                    std::copy(matched, matched + frameSize_, nextGrain_.begin());
+                    std::copy(matchedL, matchedL + frameSize_, nextGrainL_.begin());
+                    std::copy(matchedR, matchedR + frameSize_, nextGrainR_.begin());
                     xfadePos_ = 0;
                     xfading_  = true;
                 }
@@ -195,23 +206,26 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     float* grainR = grainMixBuf_.getWritePointer(1);
 
     for (int i = 0; i < numSamples; ++i) {
-        float grain = 0.f;
+        float gL = 0.f, gR = 0.f;
         if (grainReady_) {
             const int pos = grainPos_;
             if (xfading_) {
                 const float t = static_cast<float>(xfadePos_) / static_cast<float>(kXfadeLen);
-                grain = (1.f - t) * currentGrain_[pos] + t * nextGrain_[pos];
+                gL = (1.f - t) * currentGrainL_[pos] + t * nextGrainL_[pos];
+                gR = (1.f - t) * currentGrainR_[pos] + t * nextGrainR_[pos];
                 if (++xfadePos_ >= kXfadeLen) {
-                    std::copy(nextGrain_.begin(), nextGrain_.end(), currentGrain_.begin());
+                    std::copy(nextGrainL_.begin(), nextGrainL_.end(), currentGrainL_.begin());
+                    std::copy(nextGrainR_.begin(), nextGrainR_.end(), currentGrainR_.begin());
                     xfading_ = false;
                 }
             } else {
-                grain = currentGrain_[pos];
+                gL = currentGrainL_[pos];
+                gR = currentGrainR_[pos];
             }
             if (++grainPos_ >= frameSize_) grainPos_ = 0;
         }
-        grainL[i] = grain;
-        grainR[i] = grain;
+        grainL[i] = gL;
+        grainR[i] = gR;
     }
 
     // Apply EQ to grain signal only (grain is mono so L=R; EQ processes both channels independently)

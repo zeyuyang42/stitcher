@@ -17,28 +17,30 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& apvts,
 
 void PresetManager::savePreset(const juce::String& name)
 {
+    if (name.isEmpty()) return;
     auto xml = apvts_.copyState().createXml();
     if (!xml) return;
     presetsDir_.createDirectory();
-    presetsDir_.getChildFile(name + ".xml").replaceWithText(xml->toString());
-    currentPresetName_ = name;
+    if (presetsDir_.getChildFile(name + ".xml").replaceWithText(xml->toString()))
+        currentPresetName_ = name;
 }
 
 bool PresetManager::loadPreset(const juce::String& name)
 {
     auto file = presetsDir_.getChildFile(name + ".xml");
     if (!file.existsAsFile()) return false;
-    if (auto xml = juce::XmlDocument::parse(file)) {
-        auto tree = juce::ValueTree::fromXml(*xml);
-        if (tree.isValid())
-            apvts_.replaceState(tree);
-    }
+    auto xml = juce::parseXML(file);
+    if (!xml) return false;
+    auto tree = juce::ValueTree::fromXml(*xml);
+    if (!tree.isValid()) return false;
+    apvts_.replaceState(tree);
     currentPresetName_ = name;
     return true;
 }
 
 void PresetManager::deletePreset(const juce::String& name)
 {
+    if (name.isEmpty()) return;
     presetsDir_.getChildFile(name + ".xml").deleteFile();
     if (currentPresetName_ == name)
         currentPresetName_ = {};
@@ -75,7 +77,7 @@ void PresetManager::selectNext()
     auto names = getPresetNames();
     if (names.isEmpty()) return;
     int idx = names.indexOf(currentPresetName_);
-    loadPreset(names[(idx + 1) % names.size()]);
+    loadPreset(names[(idx < 0 ? 0 : (idx + 1) % names.size())]);
 }
 
 void PresetManager::selectPrev()
@@ -83,5 +85,5 @@ void PresetManager::selectPrev()
     auto names = getPresetNames();
     if (names.isEmpty()) return;
     int idx = names.indexOf(currentPresetName_);
-    loadPreset(names[(idx - 1 + names.size()) % names.size()]);
+    loadPreset(names[idx < 0 ? names.size() - 1 : (idx - 1 + names.size()) % names.size()]);
 }

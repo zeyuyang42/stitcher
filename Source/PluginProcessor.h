@@ -68,6 +68,7 @@ private:
     int  xfadePos_   = 0;
     bool xfading_    = false;
     bool grainReady_ = false;
+    juce::AudioBuffer<float> grainMixBuf_;  // 2-ch, samplesPerBlock — grain staging for grain-only EQ
 
     // Cached parameter values (atomic for audio-thread safety)
     std::atomic<float> gainCtrl_   { 1.f };

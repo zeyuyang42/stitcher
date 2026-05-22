@@ -79,6 +79,7 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     nextGrain_.assign(frameSize_, 0.f);
     ctrlMono_.assign(samplesPerBlock, 0.f);
     srcMono_.assign(samplesPerBlock, 0.f);
+    grainMixBuf_.setSize(2, samplesPerBlock, false, true, false);
     accumPos_   = 0;
     grainPos_   = 0;
     xfadePos_   = 0;
@@ -188,13 +189,10 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         }
     }
 
-    // Write grain to stereo output with dry/wet mix
-    const float wet = mix_.load();
-    const float dry = 1.f - wet;
-    float* outL = output.getWritePointer(0);
-    float* outR = output.getWritePointer(1);
-    const float* inL = mainInput.getReadPointer(0);
-    const float* inR = mainInput.getReadPointer(1);
+    // Render grain into a separate buffer so EQ applies to grain only (not the dry path).
+    // outL/inL share memory (JUCE in-place); we cannot write to output and then re-read dry.
+    float* grainL = grainMixBuf_.getWritePointer(0);
+    float* grainR = grainMixBuf_.getWritePointer(1);
 
     for (int i = 0; i < numSamples; ++i) {
         float grain = 0.f;
@@ -212,13 +210,29 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             }
             if (++grainPos_ >= frameSize_) grainPos_ = 0;
         }
-        outL[i] = dry * inL[i] + wet * grain;
-        outR[i] = dry * inR[i] + wet * grain;
+        grainL[i] = grain;
+        grainR[i] = grain;
     }
 
-    // EQ → Reverb → output gain → limiter (scoped to output bus only — VST3 buffer includes sidechain channels)
+    // Apply EQ to grain signal only (grain is mono so L=R; EQ processes both channels independently)
+    juce::dsp::AudioBlock<float> grainBlock(grainMixBuf_);
+    eq_.process(grainBlock);
+
+    // Blend EQ'd grain with dry main input into output
+    const float wet = mix_.load();
+    const float dry = 1.f - wet;
+    float* outL = output.getWritePointer(0);
+    float* outR = output.getWritePointer(1);
+    const float* inL = mainInput.getReadPointer(0);
+    const float* inR = mainInput.getReadPointer(1);
+
+    for (int i = 0; i < numSamples; ++i) {
+        outL[i] = dry * inL[i] + wet * grainL[i];
+        outR[i] = dry * inR[i] + wet * grainR[i];
+    }
+
+    // Reverb → output gain → limiter (processes the final blended output)
     juce::dsp::AudioBlock<float> outputBlock(output);
-    eq_.process(outputBlock);
     reverb_.process(outputBlock);
     output.applyGain(0, numSamples, gainOut_.load());
     limiter_.process(juce::dsp::ProcessContextReplacing<float>(outputBlock));

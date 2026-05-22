@@ -177,7 +177,7 @@ Coefficients are updated on demand (called from `processBlock` via `eqDirty_` fl
 
 🟡 **Q is fixed at 0.707 for all three bands.** For the mid peak filter especially, Q = 0.707 gives a wide bandwidth (~1.4 octaves). Users have no way to tighten it. This limits EQ precision but is a design choice, not a bug.
 
-🟡 **EQ processes the dry+wet blend, not the grain alone.** When `mix_=0.5`, EQ shapes both the original main input signal and the grain simultaneously. You cannot EQ only the concatenative output.
+✅ ~~🟡~~ **EQ now processes the grain only.** A pre-allocated `grainMixBuf_` (2-ch, samplesPerBlock) holds the grain before EQ. EQ is applied to `grainMixBuf_`, then the EQ'd grain is blended with the dry main input. With `mix_=0`, EQ has no effect on the output.
 
 ---
 
@@ -274,7 +274,7 @@ outR[i] = dry * inR[i] + wet * grain;
 | 6 | ✅ Fixed | PluginProcessor | ~~matchLen/seekTime misleading~~ — matchLen now drives frame size at prepareToPlay (nearest pow2); seekTime always drove corpus capacity |
 | 7 | ⚙️ By design | PluginProcessor | Wet grain is mono — corpus is mono; increasing Mix collapses stereo image (expected) |
 | 8 | ✅ Fixed | PluginProcessor | ~~`gainSrc_` applied before feature extraction~~ — now applied after extract(), features reflect raw audio |
-| 9 | ⚙️ By design | EQProcessor | EQ processes dry+wet blend — architectural; EQ cannot target grain alone without signal path restructure |
+| 9 | ✅ Fixed | PluginProcessor | ~~EQ processes dry+wet blend~~ — EQ now applied to grain signal only via grainMixBuf_ staging; dry path unaffected |
 | 10 | ✅ Fixed | CorpusStore | ~~Wrong comment on `newestIndex()`~~ — corrected to "logical index" (commit d66dcfe) |
 | 11 | ✅ Fixed | ConcatenativeMatcher | ~~`grainPos_` grows unboundedly~~ — wraps at `kFrameSize` (commit 442346e) |
 | 12 | ✅ Fixed | Tests | ~~Missing tests~~ — SC/ST ordering, rand path, EQ attenuation added (commit a0a6279) |

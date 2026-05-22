@@ -65,6 +65,7 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     float seekTime = apvts_.getRawParameterValue(ParamIDs::seekTime)->load();
     int maxFrames  = static_cast<int>(seekTime * sampleRate / frameSize_) + 1;
     corpus_.prepare(frameSize_, maxFrames);
+    corpusMaxFrames_ = std::max(1, maxFrames);
 
     matcher_.prepare(frameSize_);
     eq_.prepare(spec);
@@ -167,6 +168,12 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             Features srcFeatures  = featureExtractor_.extract(srcAccum_.data(),  frameSize_);
             Features ctrlFeatures = featureExtractor_.extract(ctrlAccum_.data(), frameSize_);
 
+            // Publish ctrl features for UI meters
+            lastCtrlZcr_.store(ctrlFeatures.zcr);
+            lastCtrlRms_.store(ctrlFeatures.rms);
+            lastCtrlSc_.store(ctrlFeatures.sc);
+            lastCtrlSt_.store(ctrlFeatures.st);
+
             // Apply gainSrc_ to corpus audio AFTER feature extraction so features
             // reflect raw source amplitude — independent of the playback gain knob.
             const float gs = gainSrc_.load();
@@ -178,6 +185,8 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             }
 
             corpus_.push(srcAccumL_.data(), srcAccumR_.data(), srcFeatures);
+            lastCorpusFill_.store(
+                static_cast<float>(corpus_.size()) / static_cast<float>(corpusMaxFrames_));
 
             const float* matchedL = nullptr, *matchedR = nullptr;
             if (matcher_.match(ctrlFeatures, corpus_, matchedL, matchedR)) {
@@ -250,6 +259,20 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     reverb_.process(outputBlock);
     output.applyGain(0, numSamples, gainOut_.load());
     limiter_.process(juce::dsp::ProcessContextReplacing<float>(outputBlock));
+
+    // Update output peak atomics for the level meter
+    {
+        const float* pl = output.getReadPointer(0);
+        const float* pr = output.getReadPointer(1);
+        float pkL = 0.f, pkR = 0.f;
+        for (int i = 0; i < numSamples; ++i) {
+            pkL = std::max(pkL, std::abs(pl[i]));
+            pkR = std::max(pkR, std::abs(pr[i]));
+        }
+        constexpr float kDecay = 0.9f;
+        lastOutPeakL_.store(std::max(pkL, lastOutPeakL_.load() * kDecay));
+        lastOutPeakR_.store(std::max(pkR, lastOutPeakR_.load() * kDecay));
+    }
 
 #if JUCE_DEBUG
     protectYourEars(buffer);

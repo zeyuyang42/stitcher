@@ -40,6 +40,14 @@ public:
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts_; }
 
+    float getLastCtrlZcr()    const noexcept { return lastCtrlZcr_.load(); }
+    float getLastCtrlRms()    const noexcept { return lastCtrlRms_.load(); }
+    float getLastCtrlSc()     const noexcept { return lastCtrlSc_.load(); }
+    float getLastCtrlSt()     const noexcept { return lastCtrlSt_.load(); }
+    float getLastCorpusFill() const noexcept { return lastCorpusFill_.load(); }
+    float getLastOutPeakL()   const noexcept { return lastOutPeakL_.load(); }
+    float getLastOutPeakR()   const noexcept { return lastOutPeakR_.load(); }
+
 private:
     int frameSize_ = 1024;  // set in prepareToPlay from matchLen parameter
 
@@ -84,6 +92,16 @@ private:
     std::atomic<bool> eqDirty_      { false };
     std::atomic<bool> reverbDirty_  { false };
     std::atomic<bool> matcherDirty_ { false };
+
+    // UI observability — written on audio thread, read by message-thread timer ~30 Hz
+    std::atomic<float> lastCtrlZcr_    { 0.f };
+    std::atomic<float> lastCtrlRms_    { 0.f };
+    std::atomic<float> lastCtrlSc_     { 0.f };
+    std::atomic<float> lastCtrlSt_     { 0.f };
+    std::atomic<float> lastCorpusFill_ { 0.f };
+    std::atomic<float> lastOutPeakL_   { 0.f };
+    std::atomic<float> lastOutPeakR_   { 0.f };
+    int corpusMaxFrames_ = 1;
 
     void updateMatcherFromParams();
 

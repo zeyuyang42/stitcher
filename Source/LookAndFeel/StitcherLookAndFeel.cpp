@@ -14,6 +14,9 @@ StitcherLookAndFeel::StitcherLookAndFeel()
     interTypeface_ = juce::Typeface::createSystemTypefaceFor(
         BinaryData::InterRegular_ttf, BinaryData::InterRegular_ttfSize);
     interFont_.emplace(juce::FontOptions(interTypeface_).withHeight(12.f));
+    interFont10Bold_.emplace(interFont_->withHeight(10.f).boldened());
+    interFont11_.emplace(interFont_->withHeight(11.f));
+    interFont13_.emplace(interFont_->withHeight(13.f));
 
     setColour(juce::ResizableWindow::backgroundColourId,        Background);
     setColour(juce::GroupComponent::outlineColourId,            Panel.brighter(0.15f));
@@ -114,8 +117,7 @@ void StitcherLookAndFeel::drawGroupComponentOutline(juce::Graphics& g,
         g.fillRect(textBounds.expanded(4.f, 0.f));
 
         g.setColour(TextDim);
-        auto font = interFont_.value();
-        g.setFont(font.withHeight(10.f).boldened());
+        g.setFont(interFont10Bold_.value());
         g.drawText(text.toUpperCase(), textBounds.toNearestInt(),
                    juce::Justification::centred, false);
     }
@@ -139,8 +141,7 @@ void StitcherLookAndFeel::drawToggleButton(juce::Graphics& g,
     g.drawRoundedRectangle(bounds, cornerR, 1.f);
 
     g.setColour(on ? Background : TextBright);
-    auto font = interFont_.value();
-    g.setFont(font.withHeight(11.f));
+    g.setFont(interFont11_.value());
     g.drawText(button.getButtonText(), button.getLocalBounds(),
                juce::Justification::centred, false);
 }
@@ -166,5 +167,5 @@ void StitcherLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
 
 juce::Font StitcherLookAndFeel::getPopupMenuFont()
 {
-    return interFont_.value().withHeight(13.f);
+    return interFont13_.value();
 }

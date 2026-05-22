@@ -35,6 +35,9 @@ public:
 private:
     juce::Typeface::Ptr interTypeface_;
     std::optional<juce::Font> interFont_;
+    std::optional<juce::Font> interFont10Bold_;
+    std::optional<juce::Font> interFont11_;
+    std::optional<juce::Font> interFont13_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StitcherLookAndFeel)
 };

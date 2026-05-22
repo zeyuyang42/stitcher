@@ -13,7 +13,6 @@ void initRotary(juce::Slider& s, juce::Label& l, const juce::String& name,
 
     l.setText(name, juce::dontSendNotification);
     l.setJustificationType(juce::Justification::centred);
-    l.setFont(juce::Font(juce::FontOptions{}.withHeight(11.f)));
     parent.addAndMakeVisible(l);
 }
 

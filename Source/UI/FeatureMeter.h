@@ -3,6 +3,7 @@
 
 class FeatureMeter : public juce::Component {
 public:
+    FeatureMeter() = default;
     void setLevel(float value01) noexcept;
     void setActive(bool active) noexcept;
     void paint(juce::Graphics&) override;

@@ -2,8 +2,13 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "LookAndFeel/StitcherLookAndFeel.h"
+#include "PresetManager.h"
+#include "UI/PresetBar.h"
+#include "UI/FeatureMeter.h"
+#include "UI/LevelMeter.h"
 
-class StitcherEditor : public juce::AudioProcessorEditor {
+class StitcherEditor : public juce::AudioProcessorEditor,
+                       private juce::Timer {
 public:
     explicit StitcherEditor(StitcherProcessor&);
     ~StitcherEditor() override;
@@ -11,9 +16,15 @@ public:
     void resized() override;
 
 private:
+    void timerCallback() override;
+
     StitcherProcessor& audioProcessor;
 
     StitcherLookAndFeel lnf_;
+
+    // PresetManager must be declared before PresetBar (construction order)
+    PresetManager presetManager_;
+    PresetBar     presetBar_;
 
     juce::GroupComponent concatGroup_, eqGroup_, reverbGroup_, outputGroup_;
 
@@ -34,6 +45,11 @@ private:
 
     juce::Slider gainOutSlider_, mixSlider_;
     juce::Label  gainOutLabel_,  mixLabel_;
+
+    // Live meters
+    FeatureMeter zcrMeter_, rmsMeter_, scMeter_, stMeter_;
+    FeatureMeter corpusFillMeter_;
+    LevelMeter   levelMeter_;
 
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;

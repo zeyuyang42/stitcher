@@ -3,6 +3,7 @@
 
 class LevelMeter : public juce::Component {
 public:
+    LevelMeter() = default;
     void setLevels(float peakL, float peakR) noexcept;
     void paint(juce::Graphics&) override;
 private:

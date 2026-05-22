@@ -1,6 +1,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Parameters.h"
+#include "UI/FeatureMeter.h"
+#include "UI/LevelMeter.h"
 
 namespace {
 
@@ -25,9 +27,13 @@ void layoutRotary(juce::Slider& s, juce::Label& l, juce::Rectangle<int> area)
 } // namespace
 
 StitcherEditor::StitcherEditor(StitcherProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p),
+      audioProcessor(p),
+      presetManager_(p.getAPVTS()),
+      presetBar_(presetManager_)
 {
     setLookAndFeel(&lnf_);
+    addAndMakeVisible(presetBar_);
     setSize(960, 560);
     setResizable(true, true);
     setResizeLimits(720, 420, 1440, 840);
@@ -54,6 +60,11 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
 
     freezeButton_.setButtonText("Freeze");
     addAndMakeVisible(freezeButton_);
+
+    for (auto* m : { &zcrMeter_, &rmsMeter_, &scMeter_, &stMeter_,
+                     &corpusFillMeter_ })
+        addAndMakeVisible(m);
+    addAndMakeVisible(levelMeter_);
 
     // ── EQ ─────────────────────────────────────────────────────────────
     initRotary(eqLowSlider_,  eqLowLabel_,  "Low",  *this);
@@ -88,11 +99,40 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     gainOutAttach_    = std::make_unique<SA>(apvts, ParamIDs::gainOut,    gainOutSlider_);
     mixAttach_        = std::make_unique<SA>(apvts, ParamIDs::mix,        mixSlider_);
     freezeAttach_     = std::make_unique<BA>(apvts, ParamIDs::freeze,     freezeButton_);
+
+    startTimerHz(30);
 }
 
 StitcherEditor::~StitcherEditor()
 {
+    stopTimer();
     setLookAndFeel(nullptr);
+}
+
+void StitcherEditor::timerCallback()
+{
+    auto& proc  = audioProcessor;
+    auto& apvts = proc.getAPVTS();
+
+    zcrMeter_.setLevel(proc.getLastCtrlZcr());
+    zcrMeter_.setActive(apvts.getRawParameterValue(ParamIDs::zcrWeight)->load() > 0.f);
+    rmsMeter_.setLevel(proc.getLastCtrlRms());
+    rmsMeter_.setActive(apvts.getRawParameterValue(ParamIDs::rmsWeight)->load() > 0.f);
+    scMeter_.setLevel(proc.getLastCtrlSc());
+    scMeter_.setActive(apvts.getRawParameterValue(ParamIDs::scWeight)->load() > 0.f);
+    stMeter_.setLevel(proc.getLastCtrlSt());
+    stMeter_.setActive(apvts.getRawParameterValue(ParamIDs::stWeight)->load() > 0.f);
+
+    corpusFillMeter_.setLevel(proc.getLastCorpusFill());
+
+    levelMeter_.setLevels(proc.getLastOutPeakL(), proc.getLastOutPeakR());
+
+    zcrMeter_.repaint();
+    rmsMeter_.repaint();
+    scMeter_.repaint();
+    stMeter_.repaint();
+    corpusFillMeter_.repaint();
+    levelMeter_.repaint();
 }
 
 void StitcherEditor::paint(juce::Graphics& g)
@@ -102,12 +142,18 @@ void StitcherEditor::paint(juce::Graphics& g)
 
 void StitcherEditor::resized()
 {
-    const int margin  = 8;
-    const int gap     = 6;
-    const int headerH = 18;
-    const int labelH  = 14;
+    const int margin     = 8;
+    const int gap        = 6;
+    const int headerH    = 18;
+    const int labelH     = 14;
+    const int meterH     = 6;
+    const int presetBarH = 36;
 
     auto area = getLocalBounds().reduced(margin);
+
+    // Preset bar at top
+    presetBar_.setBounds(area.removeFromTop(presetBarH));
+    area.removeFromTop(gap);
 
     // Section proportions: Concat 42%, EQ 15%, Reverb 15%, Output remainder
     const int concatW = static_cast<int>(area.getWidth() * 0.42f);
@@ -128,20 +174,24 @@ void StitcherEditor::resized()
     {
         auto r = concatArea.reduced(6).withTrimmedTop(headerH);
 
-        // Row 1: zcr, rms, sc, st (4 knobs)
+        // Row 1: zcr, rms, sc, st — each has label + meter + slider
         const int kw1 = std::min(90, (r.getWidth() - 9) / 4);
-        const int kh1 = kw1 + labelH;
+        const int kh1 = kw1 + labelH + meterH;
         auto row1 = r.removeFromTop(kh1);
-        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
-                {&zcrSlider_, &zcrLabel_}, {&rmsSlider_, &rmsLabel_},
-                {&scSlider_,  &scLabel_},  {&stSlider_,  &stLabel_} }) {
+        struct WK { juce::Slider* s; juce::Label* l; FeatureMeter* m; };
+        for (auto wk : std::initializer_list<WK>{
+                {&zcrSlider_, &zcrLabel_, &zcrMeter_},
+                {&rmsSlider_, &rmsLabel_, &rmsMeter_},
+                {&scSlider_,  &scLabel_,  &scMeter_},
+                {&stSlider_,  &stLabel_,  &stMeter_} }) {
             auto cell = row1.removeFromLeft(kw1); row1.removeFromLeft(3);
-            pair.second->setBounds(cell.removeFromTop(labelH));
-            pair.first->setBounds(cell);
+            wk.l->setBounds(cell.removeFromTop(labelH));
+            wk.m->setBounds(cell.removeFromTop(meterH));
+            wk.s->setBounds(cell);
         }
         r.removeFromTop(gap);
 
-        // Row 2: seek, matchLen, rand (3 knobs)
+        // Row 2: seek, matchLen, rand
         const int kw2 = std::min(90, (r.getWidth() - 6) / 3);
         const int kh2 = kw2 + labelH;
         auto row2 = r.removeFromTop(kh2);
@@ -155,7 +205,11 @@ void StitcherEditor::resized()
         }
         r.removeFromTop(gap);
 
-        // Row 3: gainCtrl, gainSrc + Freeze toggle
+        // Corpus fill indicator
+        corpusFillMeter_.setBounds(r.removeFromTop(meterH));
+        r.removeFromTop(gap);
+
+        // Row 3: gainCtrl, gainSrc + Freeze
         const int kw3 = std::min(90, (r.getWidth() - 6) / 3);
         const int kh3 = kw3 + labelH;
         auto row3 = r.removeFromTop(kh3);
@@ -204,6 +258,11 @@ void StitcherEditor::resized()
     // ── Output ────────────────────────────────────────────────────────────
     {
         auto r = outputArea.reduced(6).withTrimmedTop(headerH);
+        // Level meter: narrow column on right
+        auto meterCol = r.removeFromRight(16);
+        r.removeFromRight(4);
+        levelMeter_.setBounds(meterCol);
+
         const int kw = std::min(90, r.getWidth());
         const int kh = kw + labelH;
         for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{

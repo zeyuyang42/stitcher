@@ -32,6 +32,8 @@ set(SourceFiles
     Source/UI/FeatureMeter.cpp
     Source/UI/LevelMeter.h
     Source/UI/LevelMeter.cpp
+    Source/UI/PresetBar.h
+    Source/UI/PresetBar.cpp
     Source/PluginEditor.cpp
     Source/PluginEditor.h
     Source/PluginProcessor.cpp

@@ -107,6 +107,35 @@ TEST_CASE("rand path executes without crash and can return different frames") {
     REQUIRE(seenDifferentOutputs);
 }
 
+TEST_CASE("RMS matching uses stored features independent of corpus audio scale") {
+    // Verifies that matching is based on the Features struct, not the raw audio amplitude.
+    // This mirrors the post-fix PluginProcessor behavior where gainSrc_ applies to
+    // corpus audio after feature extraction.
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(0.f, 1.f, 0.f, 0.f);  // only RMS weight
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(4, 4);
+
+    // Frame A: raw RMS ≈ 0.1, stored audio scaled 4x (as if gainSrc applied post-extraction)
+    float audioA[4] = {0.4f, 0.4f, 0.4f, 0.4f};
+    corpus.push(audioA, Features{0.f, 0.1f, 0.f, 0.f});
+
+    // Frame B: raw RMS = 0.5, stored audio scaled 4x
+    float audioB[4] = {2.f, 2.f, 2.f, 2.f};
+    corpus.push(audioB, Features{0.f, 0.5f, 0.f, 0.f});
+
+    // Ctrl has raw RMS 0.1 — should match frame A by raw RMS feature
+    const float* out = matcher.match(Features{0.f, 0.1f, 0.f, 0.f}, corpus);
+    REQUIRE(out != nullptr);
+    float avg = 0.f;
+    for (int i = 0; i < 4; ++i) avg += out[i];
+    avg /= 4.f;
+    REQUIRE(avg == Catch::Approx(0.4f));  // frame A audio value, not frame B's 2.0
+}
+
 TEST_CASE("match returns raw frame audio without crossfade modification") {
     // With the old code, outputBuffer_[0] was prevBuffer_[0]*1.0 (t=0), not frame.audio[0].
     // With the new code, outputBuffer_[0] == frame.audio[0] exactly.

@@ -101,6 +101,11 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         apvts_.getRawParameterValue(ParamIDs::gainOut)->load());
     mix_    = apvts_.getRawParameterValue(ParamIDs::mix)->load() / 100.f;
     freeze_ = apvts_.getRawParameterValue(ParamIDs::freeze)->load() > 0.5f;
+
+    lastCtrlZcr_.store(0.f);  lastCtrlRms_.store(0.f);
+    lastCtrlSc_.store(0.f);   lastCtrlSt_.store(0.f);
+    lastCorpusFill_.store(0.f);
+    lastOutPeakL_.store(0.f); lastOutPeakR_.store(0.f);
 }
 
 void StitcherProcessor::releaseResources() {}
@@ -269,9 +274,11 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             pkL = std::max(pkL, std::abs(pl[i]));
             pkR = std::max(pkR, std::abs(pr[i]));
         }
-        constexpr float kDecay = 0.9f;
-        lastOutPeakL_.store(std::max(pkL, lastOutPeakL_.load() * kDecay));
-        lastOutPeakR_.store(std::max(pkR, lastOutPeakR_.load() * kDecay));
+        // Decay: ~100ms time constant, independent of block size
+        const float blockDecay = std::exp(
+            -static_cast<float>(numSamples) / (static_cast<float>(getSampleRate()) * 0.1f));
+        lastOutPeakL_.store(std::max(pkL, lastOutPeakL_.load(std::memory_order_relaxed) * blockDecay));
+        lastOutPeakR_.store(std::max(pkR, lastOutPeakR_.load(std::memory_order_relaxed) * blockDecay));
     }
 
 #if JUCE_DEBUG

@@ -8,6 +8,8 @@ void LevelMeter::setLevels(float l, float r) noexcept {
 
 void LevelMeter::paint(juce::Graphics& g)
 {
+    if (getWidth() < 4) return;
+
     const int w2 = getWidth() / 2 - 1;
     const int h  = getHeight();
 
@@ -17,10 +19,11 @@ void LevelMeter::paint(juce::Graphics& g)
         g.fillRoundedRectangle(bg.toFloat(), 2.f);
 
         if (peak > 0.f) {
-            int fillH = static_cast<int>(h * peak);
-            juce::Rectangle<int> fill{x, h - fillH, w2, fillH};
+            const float fillH = static_cast<float>(h) * peak;
+            juce::Rectangle<float> fill{static_cast<float>(x), static_cast<float>(h) - fillH,
+                                        static_cast<float>(w2), fillH};
             g.setColour(StitcherLookAndFeel::Accent);
-            g.fillRoundedRectangle(fill.toFloat(), 2.f);
+            g.fillRoundedRectangle(fill, 2.f);
         }
     };
 

@@ -13,7 +13,10 @@ StitcherLookAndFeel::StitcherLookAndFeel()
 {
     interTypeface_ = juce::Typeface::createSystemTypefaceFor(
         BinaryData::InterRegular_ttf, BinaryData::InterRegular_ttfSize);
-    interFont_.emplace(juce::FontOptions(interTypeface_).withHeight(12.f));
+    if (interTypeface_ != nullptr)
+        interFont_.emplace(juce::FontOptions(interTypeface_).withHeight(12.f));
+    else
+        interFont_.emplace(juce::FontOptions(12.f));
     interFont10Bold_.emplace(interFont_->withHeight(10.f).boldened());
     interFont11_.emplace(interFont_->withHeight(11.f));
     interFont13_.emplace(interFont_->withHeight(13.f));

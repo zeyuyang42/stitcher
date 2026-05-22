@@ -26,6 +26,8 @@ CPMAddPackage("gh:juce-framework/JUCE#master")
 CPMAddPackage("gh:catchorg/Catch2@3.7.1")
 
 set(SourceFiles
+    Source/LookAndFeel/StitcherLookAndFeel.h
+    Source/LookAndFeel/StitcherLookAndFeel.cpp
     Source/PluginEditor.cpp
     Source/PluginEditor.h
     Source/PluginProcessor.cpp
@@ -59,6 +61,11 @@ juce_add_plugin(${PROJECT_NAME}
     PRODUCT_NAME                 ${PRODUCT_NAME}
 )
 
+juce_add_binary_data(StitcherBinaryData
+    SOURCES
+        Source/Assets/Fonts/Inter-Regular.ttf
+)
+
 # pluginval must come after juce_add_plugin
 CPMAddPackage("gh:Tracktion/pluginval#develop")
 
@@ -79,6 +86,7 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_gui_extra
+        StitcherBinaryData
     PUBLIC
         juce::juce_audio_basics
         juce::juce_audio_devices

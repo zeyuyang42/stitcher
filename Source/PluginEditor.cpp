@@ -28,7 +28,10 @@ void layoutRotary(juce::Slider& s, juce::Label& l, juce::Rectangle<int> area)
 StitcherEditor::StitcherEditor(StitcherProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    setSize(820, 480);
+    setLookAndFeel(&lnf_);
+    setSize(960, 560);
+    setResizable(true, true);
+    setResizeLimits(720, 420, 1440, 840);
     auto& apvts = audioProcessor.getAPVTS();
 
     // ── Section group labels ────────────────────────────────────────────
@@ -47,8 +50,8 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     initRotary(seekTimeSlider_, seekTimeLabel_, "Seek",      *this);
     initRotary(matchLenSlider_, matchLenLabel_, "Len",       *this);
     initRotary(randSlider_,     randLabel_,     "Rand",      *this);
-    initRotary(gainCtrlSlider_, gainCtrlLabel_, "Ctrl Gain", *this);
-    initRotary(gainSrcSlider_,  gainSrcLabel_,  "Src Gain",  *this);
+    initRotary(gainCtrlSlider_, gainCtrlLabel_, "Ctrl", *this);
+    initRotary(gainSrcSlider_,  gainSrcLabel_,  "Src",  *this);
 
     freezeButton_.setButtonText("Freeze");
     addAndMakeVisible(freezeButton_);
@@ -88,24 +91,33 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     freezeAttach_     = std::make_unique<BA>(apvts, ParamIDs::freeze,     freezeButton_);
 }
 
+StitcherEditor::~StitcherEditor()
+{
+    setLookAndFeel(nullptr);
+}
+
 void StitcherEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    g.fillAll(StitcherLookAndFeel::Background);
 }
 
 void StitcherEditor::resized()
 {
-    auto area = getLocalBounds().reduced(6);
-    const int kn = 76;  // knob block height (label 18 + slider 58)
-    const int kw = 76;  // knob block width
+    const int margin  = 8;
+    const int gap     = 6;
+    const int headerH = 18;
+    const int labelH  = 14;
 
-    // ── Section widths ──────────────────────────────────────────────────
-    auto concatArea = area.removeFromLeft(380);
-    area.removeFromLeft(4);
-    auto eqArea     = area.removeFromLeft(130);
-    area.removeFromLeft(4);
-    auto reverbArea = area.removeFromLeft(130);
-    area.removeFromLeft(4);
+    auto area = getLocalBounds().reduced(margin);
+
+    // Section proportions: Concat 42%, EQ 15%, Reverb 15%, Output remainder
+    const int concatW = static_cast<int>(area.getWidth() * 0.42f);
+    const int eqW     = static_cast<int>(area.getWidth() * 0.15f);
+    const int revW    = static_cast<int>(area.getWidth() * 0.15f);
+
+    auto concatArea = area.removeFromLeft(concatW);  area.removeFromLeft(gap);
+    auto eqArea     = area.removeFromLeft(eqW);      area.removeFromLeft(gap);
+    auto reverbArea = area.removeFromLeft(revW);     area.removeFromLeft(gap);
     auto outputArea = area;
 
     concatGroup_.setBounds(concatArea);
@@ -113,68 +125,94 @@ void StitcherEditor::resized()
     reverbGroup_.setBounds(reverbArea);
     outputGroup_.setBounds(outputArea);
 
-    const int headerH = 20;
-
-    // ── Concatenator ───────────────────────────────────────────────────
+    // ── Concatenator ──────────────────────────────────────────────────────
     {
         auto r = concatArea.reduced(6).withTrimmedTop(headerH);
 
-        // Row 1: zcr, rms, sc, st
-        auto row1 = r.removeFromTop(kn);
-        layoutRotary(zcrSlider_, zcrLabel_, row1.removeFromLeft(kw));
-        row1.removeFromLeft(3);
-        layoutRotary(rmsSlider_, rmsLabel_, row1.removeFromLeft(kw));
-        row1.removeFromLeft(3);
-        layoutRotary(scSlider_,  scLabel_,  row1.removeFromLeft(kw));
-        row1.removeFromLeft(3);
-        layoutRotary(stSlider_,  stLabel_,  row1.removeFromLeft(kw));
+        // Row 1: zcr, rms, sc, st (4 knobs)
+        const int kw1 = std::min(90, (r.getWidth() - 9) / 4);
+        const int kh1 = kw1 + labelH;
+        auto row1 = r.removeFromTop(kh1);
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&zcrSlider_, &zcrLabel_}, {&rmsSlider_, &rmsLabel_},
+                {&scSlider_,  &scLabel_},  {&stSlider_,  &stLabel_} }) {
+            auto cell = row1.removeFromLeft(kw1); row1.removeFromLeft(3);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
+        r.removeFromTop(gap);
 
-        r.removeFromTop(4);
-
-        // Row 2: seekTime, matchLen, rand
-        auto row2 = r.removeFromTop(kn);
-        layoutRotary(seekTimeSlider_, seekTimeLabel_, row2.removeFromLeft(kw));
-        row2.removeFromLeft(3);
-        layoutRotary(matchLenSlider_, matchLenLabel_, row2.removeFromLeft(kw));
-        row2.removeFromLeft(3);
-        layoutRotary(randSlider_,     randLabel_,     row2.removeFromLeft(kw));
-
-        r.removeFromTop(4);
+        // Row 2: seek, matchLen, rand (3 knobs)
+        const int kw2 = std::min(90, (r.getWidth() - 6) / 3);
+        const int kh2 = kw2 + labelH;
+        auto row2 = r.removeFromTop(kh2);
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&seekTimeSlider_, &seekTimeLabel_},
+                {&matchLenSlider_, &matchLenLabel_},
+                {&randSlider_,     &randLabel_} }) {
+            auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
+        r.removeFromTop(gap);
 
         // Row 3: gainCtrl, gainSrc + Freeze toggle
-        auto row3 = r.removeFromTop(kn);
-        layoutRotary(gainCtrlSlider_, gainCtrlLabel_, row3.removeFromLeft(kw));
-        row3.removeFromLeft(3);
-        layoutRotary(gainSrcSlider_,  gainSrcLabel_,  row3.removeFromLeft(kw));
+        const int kw3 = std::min(90, (r.getWidth() - 6) / 3);
+        const int kh3 = kw3 + labelH;
+        auto row3 = r.removeFromTop(kh3);
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&gainCtrlSlider_, &gainCtrlLabel_},
+                {&gainSrcSlider_,  &gainSrcLabel_} }) {
+            auto cell = row3.removeFromLeft(kw3); row3.removeFromLeft(3);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
         row3.removeFromLeft(8);
-        freezeButton_.setBounds(row3.removeFromLeft(80).withSizeKeepingCentre(80, 28));
+        freezeButton_.setBounds(row3.removeFromLeft(kw3 + 12)
+                                    .withSizeKeepingCentre(kw3 + 12, 28));
     }
 
-    // ── EQ ─────────────────────────────────────────────────────────────
+    // ── EQ ────────────────────────────────────────────────────────────────
     {
         auto r = eqArea.reduced(6).withTrimmedTop(headerH);
-        layoutRotary(eqLowSlider_,  eqLowLabel_,  r.removeFromTop(kn));
-        r.removeFromTop(4);
-        layoutRotary(eqMidSlider_,  eqMidLabel_,  r.removeFromTop(kn));
-        r.removeFromTop(4);
-        layoutRotary(eqHighSlider_, eqHighLabel_, r.removeFromTop(kn));
+        const int kw = std::min(90, r.getWidth());
+        const int kh = kw + labelH;
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&eqLowSlider_, &eqLowLabel_},
+                {&eqMidSlider_, &eqMidLabel_},
+                {&eqHighSlider_,&eqHighLabel_} }) {
+            auto cell = r.removeFromTop(kh); r.removeFromTop(gap);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
     }
 
-    // ── Reverb ─────────────────────────────────────────────────────────
+    // ── Reverb ────────────────────────────────────────────────────────────
     {
         auto r = reverbArea.reduced(6).withTrimmedTop(headerH);
-        layoutRotary(reverbRoomSlider_, reverbRoomLabel_, r.removeFromTop(kn));
-        r.removeFromTop(4);
-        layoutRotary(reverbDampSlider_, reverbDampLabel_, r.removeFromTop(kn));
-        r.removeFromTop(4);
-        layoutRotary(reverbWetSlider_,  reverbWetLabel_,  r.removeFromTop(kn));
+        const int kw = std::min(90, r.getWidth());
+        const int kh = kw + labelH;
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&reverbRoomSlider_, &reverbRoomLabel_},
+                {&reverbDampSlider_, &reverbDampLabel_},
+                {&reverbWetSlider_,  &reverbWetLabel_} }) {
+            auto cell = r.removeFromTop(kh); r.removeFromTop(gap);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
     }
 
-    // ── Output ─────────────────────────────────────────────────────────
+    // ── Output ────────────────────────────────────────────────────────────
     {
         auto r = outputArea.reduced(6).withTrimmedTop(headerH);
-        layoutRotary(gainOutSlider_, gainOutLabel_, r.removeFromTop(kn));
-        r.removeFromTop(4);
-        layoutRotary(mixSlider_,     mixLabel_,     r.removeFromTop(kn));
+        const int kw = std::min(90, r.getWidth());
+        const int kh = kw + labelH;
+        for (auto pair : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
+                {&gainOutSlider_, &gainOutLabel_},
+                {&mixSlider_,     &mixLabel_} }) {
+            auto cell = r.removeFromTop(kh); r.removeFromTop(gap);
+            pair.second->setBounds(cell.removeFromTop(labelH));
+            pair.first->setBounds(cell);
+        }
     }
 }

@@ -46,7 +46,7 @@ void PresetBar::resized()
     const int gap    = 4;
 
     prevButton_  .setBounds(r.removeFromLeft(btnW));    r.removeFromLeft(gap);
-    nextButton_  .setBounds(r.removeFromRight(btnW));
+    nextButton_  .setBounds(r.removeFromRight(btnW));   r.removeFromRight(gap);
     initButton_  .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
     saveAsButton_.setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
     saveButton_  .setBounds(r.removeFromRight(actionW)); r.removeFromRight(gap);
@@ -74,13 +74,16 @@ void PresetBar::showSaveAsDialog()
     dlg->addTextEditor("name", presetManager_.getCurrentPresetName(), "Name:");
     dlg->addButton("Save",   1, juce::KeyPress(juce::KeyPress::returnKey));
     dlg->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+    juce::Component::SafePointer<PresetBar> safeThis(this);
+
     dlg->enterModalState(true, juce::ModalCallbackFunction::create(
-        [this, dlg](int result) {
-            if (result == 1) {
+        [safeThis, dlg](int result) {
+            if (result == 1 && safeThis != nullptr) {
                 auto name = dlg->getTextEditorContents("name").trim();
                 if (name.isNotEmpty()) {
-                    presetManager_.savePreset(name);
-                    updateLabel();
+                    safeThis->presetManager_.savePreset(name);
+                    safeThis->updateLabel();
                 }
             }
             delete dlg;

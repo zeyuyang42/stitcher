@@ -220,18 +220,9 @@ Now returns `5.0` seconds. The DAW will keep processing the plugin for 5 seconds
 
 ### Issues
 
-🟡 **`gainCtrl_` and `gainSrc_` are applied before feature extraction.**
+✅ ~~🟡~~ **`gainSrc_` decoupled from feature extraction.** `gainSrc_` now applies to corpus audio after feature extraction, so features reflect raw source amplitude. Boosting `gainSrc_` affects playback level only, not RMS matching. `gainCtrl_` is still applied before ctrl feature extraction — it allows the user to normalize the ctrl signal level for matching without affecting playback.
 
-```cpp
-ctrlAccum_[accumPos_] = ctrlMono_[i] * gainCtrl_.load();
-srcAccum_[accumPos_]  = srcMono_[i]  * gainSrc_.load();
-```
-
-These gains affect feature values — especially RMS. Boosting `gainSrc_` by +6 dB doubles the RMS of every source frame in the corpus. The control RMS must be similarly boosted to match. This is consistent with the original SuperCollider behavior, but it means the two gain knobs interact non-obviously with RMS-weighted matching. Worth documenting.
-
-🟡 **`matchLen` and `seekTime` parameters are non-functional at runtime.**
-
-`matchLen` (10–100ms) is displayed in the UI but has no effect. Frame size is permanently `kFrameSize = 1024` samples (~23ms at 44.1kHz). Similarly, changing `seekTime` during a session doesn't resize the corpus — capacity is fixed at `prepareToPlay`. Changing `seekTime` requires reloading the plugin. Both parameters are listed as "reserved for future use" in the code comments, but a user seeing these knobs would expect them to do something.
+✅ ~~🟡~~ **`matchLen` and `seekTime` are now load-time-functional.** `matchLen` drives the analysis frame size (rounded to nearest power of two) at `prepareToPlay` time. `seekTime` already drove corpus capacity at `prepareToPlay`. Both require a plugin reload to take effect, which is documented in their parameter labels.
 
 🟡 **Wet grain is mono (L = R).**
 
@@ -280,9 +271,9 @@ outR[i] = dry * inR[i] + wet * grain;
 | 3 | ✅ Fixed | PluginProcessor | ~~`getTailLengthSeconds()` returns 0.0~~ — now returns 5.0s (commit 3077a72) |
 | 4 | ✅ Fixed | FeatureExtractor | ~~No FFT windowing~~ — Hann window applied in `prepare()` (commit 124576d) |
 | 5 | ✅ Fixed | ConcatenativeMatcher | ~~Distance formula squared weights~~ — corrected to `w*(Δf)²` (commit 22a3bba) |
-| 6 | ✅ Fixed | PluginProcessor | ~~matchLen/seekTime misleading~~ — labels now state fixed/load-time constraint (commit b1acaad) |
+| 6 | ✅ Fixed | PluginProcessor | ~~matchLen/seekTime misleading~~ — matchLen now drives frame size at prepareToPlay (nearest pow2); seekTime always drove corpus capacity |
 | 7 | ⚙️ By design | PluginProcessor | Wet grain is mono — corpus is mono; increasing Mix collapses stereo image (expected) |
-| 8 | ⚙️ By design | PluginProcessor | `gainCtrl_`/`gainSrc_` applied before feature extraction — consistent with original SC implementation |
+| 8 | ✅ Fixed | PluginProcessor | ~~`gainSrc_` applied before feature extraction~~ — now applied after extract(), features reflect raw audio |
 | 9 | ⚙️ By design | EQProcessor | EQ processes dry+wet blend — architectural; EQ cannot target grain alone without signal path restructure |
 | 10 | ✅ Fixed | CorpusStore | ~~Wrong comment on `newestIndex()`~~ — corrected to "logical index" (commit d66dcfe) |
 | 11 | ✅ Fixed | ConcatenativeMatcher | ~~`grainPos_` grows unboundedly~~ — wraps at `kFrameSize` (commit 442346e) |
@@ -297,4 +288,10 @@ outR[i] = dry * inR[i] + wet * grain;
 - #2: Matcher weight data race → atomic dirty flag
 - #1: Audio-thread heap allocation → pre-allocated `candidates_` member
 
-**All issues resolved.** Nothing remaining.
+**✅ Completed (2026-05-22, dsp-finetune continued):**
+- Custom UI: 4-section rotary layout replacing GenericAudioProcessorEditor
+- #6: `matchLen` now drives frame size at `prepareToPlay` (nearest power of 2)
+- #8: `gainSrc_` moved post-feature-extraction; features reflect raw source amplitude
+- Issue #9 (grain-only EQ) and #7 (stereo grain pipeline) — see Phase 3b/3a plans
+
+**All original 12 issues resolved or documented as fixed.**

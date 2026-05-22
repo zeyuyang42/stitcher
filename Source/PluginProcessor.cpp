@@ -153,12 +153,19 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Accumulate samples into frames; when a frame is complete, analyse + match
     for (int i = 0; i < numSamples; ++i) {
         ctrlAccum_[accumPos_] = ctrlMono_[i] * gainCtrl_.load();
-        srcAccum_[accumPos_]  = srcMono_[i]  * gainSrc_.load();
+        srcAccum_[accumPos_]  = srcMono_[i];   // raw — gainSrc_ applied post-extraction
         ++accumPos_;
 
         if (accumPos_ == frameSize_) {
             Features srcFeatures  = featureExtractor_.extract(srcAccum_.data(),  frameSize_);
             Features ctrlFeatures = featureExtractor_.extract(ctrlAccum_.data(), frameSize_);
+
+            // Apply gainSrc_ to corpus audio AFTER feature extraction so features
+            // reflect raw source amplitude — independent of the playback gain knob.
+            const float gs = gainSrc_.load();
+            if (gs != 1.f)
+                for (int j = 0; j < frameSize_; ++j)
+                    srcAccum_[j] *= gs;
 
             corpus_.push(srcAccum_.data(), srcFeatures);
 

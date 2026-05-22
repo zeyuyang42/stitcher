@@ -107,3 +107,22 @@ TEST_CASE("ST is lower for a low-frequency sine than a high-frequency sine") {
     auto fHigh = fe.extract(high.data(), 1024);
     REQUIRE(fLow.st < fHigh.st);
 }
+
+TEST_CASE("FeatureExtractor works correctly at frameSize 512") {
+    FeatureExtractor fe;
+    fe.prepare(512);
+    std::vector<float> buf(512, 0.f);
+    auto f = fe.extract(buf.data(), 512);
+    REQUIRE(f.zcr == Catch::Approx(0.f));
+    REQUIRE(f.rms == Catch::Approx(0.f));
+    REQUIRE(f.sc  == Catch::Approx(0.f));
+    REQUIRE(f.st  == Catch::Approx(0.f));
+}
+
+TEST_CASE("FeatureExtractor works correctly at frameSize 2048") {
+    FeatureExtractor fe;
+    fe.prepare(2048);
+    std::vector<float> buf(2048, 1.f);
+    auto f = fe.extract(buf.data(), 2048);
+    REQUIRE(f.rms == Catch::Approx(1.f));
+}

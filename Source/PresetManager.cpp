@@ -19,6 +19,8 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& apvts,
 void PresetManager::savePreset(const juce::String& name)
 {
     if (name.isEmpty()) return;
+    for (const auto& fp : factoryPresets_)
+        if (fp.name == name) return;
     auto xml = apvts_.copyState().createXml();
     if (!xml) return;
     presetsDir_.createDirectory();

@@ -254,3 +254,32 @@ TEST_CASE("PresetManager: getCategoryNames returns factory categories in inserti
 
     tempDir.deleteRecursively();
 }
+
+TEST_CASE("PresetManager: savePreset refuses to shadow a factory preset name") {
+    JuceInit init;
+    auto tempDir = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                       .getChildFile("StitcherPresetTest_" + juce::String(juce::Time::currentTimeMillis()));
+    tempDir.deleteRecursively();
+
+    DummyProcessor proc;
+    juce::AudioProcessorValueTreeState apvts{proc, nullptr, "P", createParameterLayout()};
+
+    std::vector<PresetManager::FactoryPreset> factory {
+        { "Init", "Utility", makePresetXml(1.0f) },
+    };
+    PresetManager pm{apvts, tempDir, factory};
+
+    // Attempt to save a user preset with a factory name — should be silently rejected
+    pm.savePreset("Init");
+    // User preset file must NOT exist on disk
+    REQUIRE_FALSE(tempDir.getChildFile("Init.xml").existsAsFile());
+    // Current preset name must remain empty (save did not succeed)
+    REQUIRE(pm.getCurrentPresetName().isEmpty());
+    // "Init" appears exactly once in the names list (from factory)
+    auto names = pm.getPresetNames();
+    int count = 0;
+    for (auto& n : names) if (n == "Init") ++count;
+    REQUIRE(count == 1);
+
+    tempDir.deleteRecursively();
+}

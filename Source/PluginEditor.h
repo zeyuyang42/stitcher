@@ -8,6 +8,7 @@
 #include "UI/FeatureMeter.h"
 #include "UI/LevelMeter.h"
 #include "UI/MorphPad.h"
+#include "UI/MatchVisualizer.h"
 
 class StitcherEditor : public juce::AudioProcessorEditor,
                        private juce::Timer {
@@ -56,8 +57,8 @@ private:
     juce::Label  gainOutLabel_,  mixLabel_;
 
     // Live meters
-    FeatureMeter corpusFillMeter_;
-    LevelMeter   levelMeter_;
+    MatchVisualizer matchViz_;
+    LevelMeter      levelMeter_;
 
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;

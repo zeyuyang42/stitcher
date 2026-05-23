@@ -177,3 +177,39 @@ TEST_CASE("Stereo corpus returns distinct L and R audio from the matched frame")
     REQUIRE(outL[0] == Catch::Approx(1.f));
     REQUIRE(outR[0] == Catch::Approx(2.f));
 }
+
+TEST_CASE("getLastMatchedIndex returns -1 before any match") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    REQUIRE(matcher.getLastMatchedIndex() == -1);
+}
+
+TEST_CASE("getLastMatchedIndex returns correct index after match") {
+    ConcatenativeMatcher matcher;
+    matcher.prepare(4);
+    matcher.setWeights(0.f, 1.f, 0.f, 0.f);  // RMS only
+    matcher.setRand(0.f);
+
+    CorpusStore corpus;
+    corpus.prepare(4, 10);
+
+    // Push two frames with different RMS
+    float quiet[4] = {0.1f, 0.1f, 0.1f, 0.1f};
+    float loud[4]  = {0.9f, 0.9f, 0.9f, 0.9f};
+    Features fq{0.f, 0.05f, 0.f, 0.f};  // low RMS
+    Features fl{0.f, 0.8f,  0.f, 0.f};  // high RMS
+    corpus.push(quiet, quiet, fq);  // index 0
+    corpus.push(loud,  loud,  fl);  // index 1
+
+    const float* outL = nullptr, *outR = nullptr;
+
+    // Match against high RMS control → should pick index 1
+    Features ctrl_loud{0.f, 0.9f, 0.f, 0.f};
+    matcher.match(ctrl_loud, corpus, outL, outR);
+    REQUIRE(matcher.getLastMatchedIndex() == 1);
+
+    // Match against low RMS control → should pick index 0
+    Features ctrl_quiet{0.f, 0.05f, 0.f, 0.f};
+    matcher.match(ctrl_quiet, corpus, outL, outR);
+    REQUIRE(matcher.getLastMatchedIndex() == 0);
+}

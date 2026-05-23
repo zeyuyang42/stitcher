@@ -75,7 +75,7 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     matchLenDivBox_.addItemList({"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 1);
     addAndMakeVisible(matchLenDivBox_);
 
-    addAndMakeVisible(corpusFillMeter_);
+    addAndMakeVisible(matchViz_);
     addAndMakeVisible(levelMeter_);
 
     // ── EQ ─────────────────────────────────────────────────────────────
@@ -171,11 +171,12 @@ void StitcherEditor::timerCallback()
                             proc.getLastCtrlSc(),  proc.getLastCtrlSt());
     morphPad_.repaint();
 
-    corpusFillMeter_.setLevel(proc.getLastCorpusFill());
+    matchViz_.tick(proc.getLastCtrlRms(),
+                   proc.getLastMatchedIndex(),
+                   proc.getLastCorpusFill());
+    matchViz_.repaint();
 
     levelMeter_.setLevels(proc.getLastOutPeakL(), proc.getLastOutPeakR());
-
-    corpusFillMeter_.repaint();
     levelMeter_.repaint();
 }
 
@@ -301,8 +302,8 @@ void StitcherEditor::resized()
         }
         r.removeFromTop(gap);
 
-        // Corpus fill indicator
-        corpusFillMeter_.setBounds(r.removeFromTop(meterH));
+        // Match visualizer (replaces corpus fill bar)
+        matchViz_.setBounds(r.removeFromTop(50));
         r.removeFromTop(gap);
 
         // Row 3: gainCtrl, gainSrc + Freeze

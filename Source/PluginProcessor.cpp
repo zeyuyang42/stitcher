@@ -226,6 +226,7 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
             const float* matchedL = nullptr, *matchedR = nullptr;
             if (matcher_.match(ctrlFeatures, corpus_, matchedL, matchedR)) {
+                lastMatchedIndex_.store(matcher_.getLastMatchedIndex());
                 if (!grainReady_) {
                     // First grain: load directly and start playing from position 0
                     std::copy(matchedL, matchedL + frameSize_, currentGrainL_.begin());

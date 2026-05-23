@@ -62,9 +62,10 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     initRotary(rmsSlider_,      rmsLabel_,      "RMS",       *this);
     initRotary(scSlider_,       scLabel_,       "S.Cent",    *this);
     initRotary(stSlider_,       stLabel_,       "S.Tilt",    *this);
-    initRotary(seekTimeSlider_, seekTimeLabel_, "Seek",      *this);
-    initRotary(matchLenSlider_, matchLenLabel_, "Len",       *this);
-    initRotary(randSlider_,     randLabel_,     "Rand",      *this);
+    initRotary(seekTimeSlider_, seekTimeLabel_, "Seek",  *this);
+    initRotary(matchLenSlider_, matchLenLabel_, "Len",   *this);
+    initRotary(randSlider_,     randLabel_,     "Rand",  *this);
+    initRotary(xfadeSlider_,    xfadeLabel_,    "Xfade", *this);
     initRotary(gainCtrlSlider_, gainCtrlLabel_, "Ctrl", *this);
     initRotary(gainSrcSlider_,  gainSrcLabel_,  "Src",  *this);
 
@@ -104,6 +105,7 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     seekTimeAttach_   = std::make_unique<SA>(apvts, ParamIDs::seekTime,   seekTimeSlider_);
     matchLenAttach_   = std::make_unique<SA>(apvts, ParamIDs::matchLen,   matchLenSlider_);
     randAttach_       = std::make_unique<SA>(apvts, ParamIDs::rand_,      randSlider_);
+    xfadeAttach_      = std::make_unique<SA>(apvts, ParamIDs::xfade,      xfadeSlider_);
     gainCtrlAttach_   = std::make_unique<SA>(apvts, ParamIDs::gainCtrl,   gainCtrlSlider_);
     gainSrcAttach_    = std::make_unique<SA>(apvts, ParamIDs::gainSrc,    gainSrcSlider_);
     eqLowAttach_      = std::make_unique<SA>(apvts, ParamIDs::eqLow,      eqLowSlider_);
@@ -140,6 +142,7 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
         { &seekTimeSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::seekTime))   },
         { &matchLenSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::matchLen))   },
         { &randSlider_,        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))      },
+        { &xfadeSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::xfade))      },
         { &gainCtrlSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainCtrl))   },
         { &gainSrcSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainSrc))    },
         { &eqLowSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqLow))      },
@@ -284,9 +287,9 @@ void StitcherEditor::resized()
         }
         r.removeFromTop(gap);
 
-        // Row 2: seek, matchLen (with sync toggle), rand
+        // Row 2: seek, matchLen (with sync toggle), rand, xfade
         const int syncBtnH = 18;
-        const int kw2 = std::min(90, (r.getWidth() - 6) / 3);
+        const int kw2 = std::min(90, (r.getWidth() - 9) / 4);
         const int kh2 = kw2 + labelH + syncBtnH;
         auto row2 = r.removeFromTop(kh2);
         // Seek
@@ -313,6 +316,13 @@ void StitcherEditor::resized()
             randLabel_.setBounds(cell.removeFromTop(labelH));
             cell.removeFromTop(syncBtnH);
             randSlider_.setBounds(cell);
+        }
+        // Xfade
+        {
+            auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
+            xfadeLabel_.setBounds(cell.removeFromTop(labelH));
+            cell.removeFromTop(syncBtnH);
+            xfadeSlider_.setBounds(cell);
         }
         r.removeFromTop(gap);
 

@@ -76,7 +76,7 @@ private:
     int accumPos_ = 0;
 
     // Grain double-buffer for position-aligned crossfade
-    static constexpr int kXfadeLen = 256;   // ~5.8ms at 44.1kHz
+    std::atomic<int> xfadeLenSamples_ { 256 };
     std::vector<float> currentGrainL_;
     std::vector<float> currentGrainR_;
     std::vector<float> nextGrainL_;

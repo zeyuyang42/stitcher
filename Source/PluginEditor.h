@@ -35,14 +35,14 @@ private:
     juce::GroupComponent concatGroup_, eqGroup_, reverbGroup_, outputGroup_;
 
     juce::Slider zcrSlider_, rmsSlider_, scSlider_, stSlider_;
-    juce::Slider seekTimeSlider_, matchLenSlider_, randSlider_;
+    juce::Slider seekTimeSlider_, matchLenSlider_, randSlider_, xfadeSlider_;
     juce::Slider gainCtrlSlider_, gainSrcSlider_;
     juce::ToggleButton freezeButton_;
     juce::ToggleButton matchLenSyncButton_;
     juce::ComboBox     matchLenDivBox_;
 
     juce::Label zcrLabel_, rmsLabel_, scLabel_, stLabel_;
-    juce::Label seekTimeLabel_, matchLenLabel_, randLabel_;
+    juce::Label seekTimeLabel_, matchLenLabel_, randLabel_, xfadeLabel_;
     juce::Label gainCtrlLabel_, gainSrcLabel_;
 
     juce::Slider eqLowSlider_, eqMidSlider_, eqHighSlider_;
@@ -63,7 +63,7 @@ private:
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;
     using CA = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
     std::unique_ptr<SA> zcrAttach_, rmsAttach_, scAttach_, stAttach_;
-    std::unique_ptr<SA> seekTimeAttach_, matchLenAttach_, randAttach_;
+    std::unique_ptr<SA> seekTimeAttach_, matchLenAttach_, randAttach_, xfadeAttach_;
     std::unique_ptr<SA> gainCtrlAttach_, gainSrcAttach_;
     std::unique_ptr<SA> eqLowAttach_, eqMidAttach_, eqHighAttach_;
     std::unique_ptr<SA> reverbRoomAttach_, reverbDampAttach_, reverbWetAttach_;

@@ -76,16 +76,17 @@ private:
     std::vector<float> srcMono_;
     int accumPos_ = 0;
 
-    // Grain double-buffer for position-aligned crossfade
-    std::atomic<int> xfadeLenSamples_ { 256 };
-    std::vector<float> currentGrainL_;
-    std::vector<float> currentGrainR_;
-    std::vector<float> nextGrainL_;
-    std::vector<float> nextGrainR_;
-    int  grainPos_   = 0;
-    int  xfadePos_   = 0;
-    bool xfading_    = false;
-    bool grainReady_ = false;
+    // Two-voice OLA grain engine — envelope baked into grain buffer at load time
+    struct GrainVoice {
+        std::vector<float> bufL, bufR;
+        int  pos    = 0;
+        bool active = false;
+    };
+
+    std::atomic<int>         xfadeLenSamples_ { 256 };
+    GrainVoice               voices_[2];
+    int                      activeSlot_ = 0;
+    bool                     grainReady_ = false;
     juce::AudioBuffer<float> grainMixBuf_;  // 2-ch, samplesPerBlock — grain staging for grain-only EQ
 
     // Cached parameter values (atomic for audio-thread safety)

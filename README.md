@@ -83,7 +83,7 @@ cmake --build build --target Stitcher_pluginval_cli  # pluginval format validati
 
 ## Testing
 
-- **Unit tests** — 62 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, EQTilt, ReverbSpace, PresetManager, MidiLearn, MorphPad
+- **Unit tests** — 66 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, EQTilt, ReverbSpace, PresetManager, MidiLearn, MorphPad, Crossfade
 - **Plugin validation** — pluginval at strictness level 5 against AU
 
 ## Usage
@@ -96,6 +96,13 @@ The plugin requires two stereo inputs:
 In most DAWs, route the sidechain via the plugin's side-chain input. If the sidechain is unconnected, the plugin outputs silence (corpus still accumulates from the main input).
 
 ## Changelog
+
+### v0.4.1 — crossfade fix (2026-05-24)
+
+- **Two-voice OLA grain engine** — replaces the position-aligned double-buffer with two independent grain voices; each grain's buffer is pre-windowed (trapezoidal fade-in/fade-out) at load time; voices stop naturally at `frameSize_` samples (no wrap) so the click is gone
+- **Xfade knob now audible** — at Xfade=0 grain boundaries click (textural, intentional); sweeping toward 1 smoothly suppresses clicks via longer window ramps; the knob is no longer a no-op
+- **Merged inner loops** — accumulation and rendering share one `for (int i = 0; i < numSamples; ++i)` loop; the grain hand-off fires at exactly the sample where the frame boundary occurs, eliminating the previous loop-desync bug
+- **4 new Catch2 tests** — CrossfadeTest covers: no large per-sample jump with xfade>0; click preserved at xfade=0; voice deactivates after exactly frameSize samples; windowed grain endpoints are zero
 
 ### v0.4.0 — center-focus UI cycle (2026-05-23)
 

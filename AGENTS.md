@@ -72,7 +72,7 @@ Source/
 2. Feature extraction (ZCR, RMS, spectral centroid, tilt) from the mono mixes
 3. `gainSrc_` applied to stereo corpus audio **after** feature extraction (does not affect RMS matching)
 4. CorpusStore push (stereo L+R) + ConcatenativeMatcher match → stereo grain pointers
-5. Grain playback with position-aligned crossfade on L and R independently
+5. Grain playback via two-voice OLA: each matched grain is pre-windowed (trapezoidal fade-in/fade-out) and played by an independent voice; voices stop after frameSize samples (no wrap); Xfade knob controls ramp length
 6. EQ applied to grain only (via `grainMixBuf_` staging)
 7. Dry/wet blend: `dry * mainInput + wet * grainEQ'd`
 8. Reverb → Output gain → Limiter (−1 dBFS)

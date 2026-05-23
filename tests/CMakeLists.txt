@@ -8,6 +8,7 @@ add_executable(StitcherTests
     PresetManagerTest.cpp
     MidiLearnTest.cpp
     MorphPadTest.cpp
+    CrossfadeTest.cpp
     ${CMAKE_SOURCE_DIR}/Source/FeatureExtractor.cpp
     ${CMAKE_SOURCE_DIR}/Source/CorpusStore.cpp
     ${CMAKE_SOURCE_DIR}/Source/ConcatenativeMatcher.cpp

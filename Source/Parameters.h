@@ -27,6 +27,8 @@ namespace ParamIDs {
     // Output
     inline constexpr auto gainOut    { "gain_out" };
     inline constexpr auto mix        { "mix" };
+    // Crossfade
+    inline constexpr auto xfade      { "xfade" };
 }
 
 static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
@@ -162,6 +164,12 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         NormalisableRange<float>(0.f, 100.f, 0.1f), 100.f,
         String(), AudioProcessorParameter::genericParameter,
         pctFormat, nullptr));
+
+    layout.add(std::make_unique<AudioParameterFloat>(
+        ParameterID{ParamIDs::xfade, 1}, "Xfade",
+        NormalisableRange<float>(0.f, 1.f, 0.01f), 1.f,
+        String(), AudioProcessorParameter::genericParameter,
+        [](float v, int) { return String(v, 2); }, nullptr));
 
     return layout;
 }

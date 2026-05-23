@@ -39,19 +39,23 @@ Tests compile Source `.cpp` files directly (not via a library target). Test bina
 - Preset bar: `PresetBar` component at top — save/load/next/prev/init, A/B state slots.
 - Factory presets: 51 XMLs embedded via `juce_add_binary_data`; `makeFactoryPresets()` in `FactoryPresets.h` registers them with `PresetManager`.
 - MIDI learn: `MidiLearn` in `Source/MidiLearn.h/.cpp` — right-click any knob → bind CC.
+- Morph pad: `MorphPad` in `Source/UI/MorphPad.h/.cpp` — 2D bilinear blending of the four feature weights (TL=ZCR, TR=RMS, BL=SC, BR=ST); replaces four separate knobs.
+- Match visualizer: `MatchVisualizer` in `Source/UI/MatchVisualizer.h/.cpp` — live 2-track strip showing ctrl RMS history (top) and corpus slots (bottom) with a connection line to the matched slot.
 
 ### Source layout
 ```
 Source/
   LookAndFeel/StitcherLookAndFeel.h/.cpp  — custom JUCE LookAndFeel_V4
-  UI/PresetBar.h/.cpp      — top-strip preset nav + A/B slots
-  UI/FeatureMeter.h/.cpp   — horizontal bargraph for ZCR/RMS/SC/ST
-  UI/LevelMeter.h/.cpp     — stereo peak meter
+  UI/PresetBar.h/.cpp          — top-strip preset nav + A/B slots
+  UI/FeatureMeter.h/.cpp       — horizontal bargraph (used for corpus fill indicator)
+  UI/LevelMeter.h/.cpp         — stereo peak meter
+  UI/MorphPad.h/.cpp           — 4-corner bilinear morph pad for feature weights
+  UI/MatchVisualizer.h/.cpp    — live corpus/ctrl match animation strip
   Assets/Fonts/            — Inter-Regular.ttf (embedded via BinaryData)
   Assets/Presets/          — 51 factory preset XMLs (embedded via BinaryData)
   PluginEditor.h/.cpp
   PluginProcessor.h/.cpp
-  Parameters.h             — 20 APVTS parameter IDs
+  Parameters.h             — 21 APVTS parameter IDs (added xfade in v0.3)
   FeatureExtractor.h/.cpp
   CorpusStore.h/.cpp
   ConcatenativeMatcher.h/.cpp

@@ -19,6 +19,8 @@ public:
     // Exposed for testing
     float distance(const Features& a, const Features& b) const;
 
+    int getLastMatchedIndex() const noexcept { return lastMatchedIndex_; }
+
 private:
     int frameSize_ = 1024;
     float wZcr_ = 0.f, wRms_ = 1.f, wSc_ = 0.f, wSt_ = 0.f;
@@ -29,4 +31,5 @@ private:
     std::vector<int>   candidates_;   // pre-allocated, reused each block to avoid audio-thread heap alloc
 
     juce::Random random_;
+    int lastMatchedIndex_ = -1;
 };

@@ -30,7 +30,7 @@ StitcherProcessor::StitcherProcessor()
                       gainCtrl, gainSrc,
                       eqLow, eqMid, eqHigh,
                       reverbRoom, reverbDamp, reverbWet,
-                      gainOut, mix })
+                      gainOut, mix, xfade })
         apvts_.addParameterListener(id, this);
 
     apvts_.addParameterListener(freeze, this);
@@ -68,7 +68,12 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         float matchLenMs = apvts_.getRawParameterValue(ParamIDs::matchLen)->load();
         frameSize_ = nearestPow2(static_cast<double>(matchLenMs) * sampleRate / 1000.0);
     }
-    jassert(frameSize_ > kXfadeLen);
+    // Clamp xfade length to [0, frameSize_-1]
+    {
+        const float xfadeRaw = apvts_.getRawParameterValue(ParamIDs::xfade)->load();
+        xfadeLenSamples_.store(
+            juce::jlimit(0, frameSize_ - 1, static_cast<int>(xfadeRaw * 256.f)));
+    }
 
     juce::dsp::ProcessSpec spec;
     spec.sampleRate       = sampleRate;
@@ -221,6 +226,7 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
             const float* matchedL = nullptr, *matchedR = nullptr;
             if (matcher_.match(ctrlFeatures, corpus_, matchedL, matchedR)) {
+                lastMatchedIndex_.store(matcher_.getLastMatchedIndex());
                 if (!grainReady_) {
                     // First grain: load directly and start playing from position 0
                     std::copy(matchedL, matchedL + frameSize_, currentGrainL_.begin());
@@ -245,18 +251,28 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     float* grainL = grainMixBuf_.getWritePointer(0);
     float* grainR = grainMixBuf_.getWritePointer(1);
 
+    const int xfadeLen = xfadeLenSamples_.load();
     for (int i = 0; i < numSamples; ++i) {
         float gL = 0.f, gR = 0.f;
         if (grainReady_) {
             const int pos = grainPos_;
             if (xfading_) {
-                const float t = static_cast<float>(xfadePos_) / static_cast<float>(kXfadeLen);
-                gL = (1.f - t) * currentGrainL_[pos] + t * nextGrainL_[pos];
-                gR = (1.f - t) * currentGrainR_[pos] + t * nextGrainR_[pos];
-                if (++xfadePos_ >= kXfadeLen) {
+                if (xfadeLen == 0) {
+                    // Zero crossfade: snap immediately to next grain (intentional click)
                     std::copy(nextGrainL_.begin(), nextGrainL_.end(), currentGrainL_.begin());
                     std::copy(nextGrainR_.begin(), nextGrainR_.end(), currentGrainR_.begin());
                     xfading_ = false;
+                    gL = currentGrainL_[pos];
+                    gR = currentGrainR_[pos];
+                } else {
+                    const float t = static_cast<float>(xfadePos_) / static_cast<float>(xfadeLen);
+                    gL = (1.f - t) * currentGrainL_[pos] + t * nextGrainL_[pos];
+                    gR = (1.f - t) * currentGrainR_[pos] + t * nextGrainR_[pos];
+                    if (++xfadePos_ >= xfadeLen) {
+                        std::copy(nextGrainL_.begin(), nextGrainL_.end(), currentGrainL_.begin());
+                        std::copy(nextGrainR_.begin(), nextGrainR_.end(), currentGrainR_.begin());
+                        xfading_ = false;
+                    }
                 }
             } else {
                 gL = currentGrainL_[pos];
@@ -363,6 +379,9 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
         eqDirty_ = true;
     else if (id == reverbRoom || id == reverbDamp || id == reverbWet)
         reverbDirty_ = true;
+    else if (id == ParamIDs::xfade)
+        xfadeLenSamples_.store(
+            juce::jlimit(0, frameSize_ - 1, static_cast<int>(newValue * 256.f)));
     else if (id == ParamIDs::seekTime || id == ParamIDs::matchLen)
     {
         // seekTime and matchLen take effect on next prepareToPlay (plugin reload).

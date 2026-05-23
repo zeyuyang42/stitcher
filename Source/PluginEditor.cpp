@@ -58,13 +58,11 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
         addAndMakeVisible(g);
 
     // ── Concatenator ───────────────────────────────────────────────────
-    initRotary(zcrSlider_,      zcrLabel_,      "ZCR",       *this);
-    initRotary(rmsSlider_,      rmsLabel_,      "RMS",       *this);
-    initRotary(scSlider_,       scLabel_,       "S.Cent",    *this);
-    initRotary(stSlider_,       stLabel_,       "S.Tilt",    *this);
-    initRotary(seekTimeSlider_, seekTimeLabel_, "Seek",      *this);
-    initRotary(matchLenSlider_, matchLenLabel_, "Len",       *this);
-    initRotary(randSlider_,     randLabel_,     "Rand",      *this);
+    addAndMakeVisible(morphPad_);
+    initRotary(seekTimeSlider_, seekTimeLabel_, "Seek",  *this);
+    initRotary(matchLenSlider_, matchLenLabel_, "Len",   *this);
+    initRotary(randSlider_,     randLabel_,     "Rand",  *this);
+    initRotary(xfadeSlider_,    xfadeLabel_,    "Xfade", *this);
     initRotary(gainCtrlSlider_, gainCtrlLabel_, "Ctrl", *this);
     initRotary(gainSrcSlider_,  gainSrcLabel_,  "Src",  *this);
 
@@ -77,9 +75,7 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     matchLenDivBox_.addItemList({"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 1);
     addAndMakeVisible(matchLenDivBox_);
 
-    for (auto* m : { &zcrMeter_, &rmsMeter_, &scMeter_, &stMeter_,
-                     &corpusFillMeter_ })
-        addAndMakeVisible(m);
+    addAndMakeVisible(matchViz_);
     addAndMakeVisible(levelMeter_);
 
     // ── EQ ─────────────────────────────────────────────────────────────
@@ -97,13 +93,15 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     initRotary(mixSlider_,     mixLabel_,     "Mix",  *this);
 
     // ── Attachments (after sliders are visible) ─────────────────────────
-    zcrAttach_        = std::make_unique<SA>(apvts, ParamIDs::zcrWeight,  zcrSlider_);
-    rmsAttach_        = std::make_unique<SA>(apvts, ParamIDs::rmsWeight,  rmsSlider_);
-    scAttach_         = std::make_unique<SA>(apvts, ParamIDs::scWeight,   scSlider_);
-    stAttach_         = std::make_unique<SA>(apvts, ParamIDs::stWeight,   stSlider_);
+    morphPad_.setParams(
+        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::zcrWeight)),
+        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rmsWeight)),
+        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::scWeight)),
+        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::stWeight)));
     seekTimeAttach_   = std::make_unique<SA>(apvts, ParamIDs::seekTime,   seekTimeSlider_);
     matchLenAttach_   = std::make_unique<SA>(apvts, ParamIDs::matchLen,   matchLenSlider_);
     randAttach_       = std::make_unique<SA>(apvts, ParamIDs::rand_,      randSlider_);
+    xfadeAttach_      = std::make_unique<SA>(apvts, ParamIDs::xfade,      xfadeSlider_);
     gainCtrlAttach_   = std::make_unique<SA>(apvts, ParamIDs::gainCtrl,   gainCtrlSlider_);
     gainSrcAttach_    = std::make_unique<SA>(apvts, ParamIDs::gainSrc,    gainSrcSlider_);
     eqLowAttach_      = std::make_unique<SA>(apvts, ParamIDs::eqLow,      eqLowSlider_);
@@ -133,13 +131,10 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
 
     // ── MIDI Learn: map each slider to its APVTS parameter ─────────────────
     sliderToParam_ = {
-        { &zcrSlider_,         dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::zcrWeight))  },
-        { &rmsSlider_,         dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rmsWeight))  },
-        { &scSlider_,          dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::scWeight))   },
-        { &stSlider_,          dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::stWeight))   },
         { &seekTimeSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::seekTime))   },
         { &matchLenSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::matchLen))   },
         { &randSlider_,        dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))      },
+        { &xfadeSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::xfade))      },
         { &gainCtrlSlider_,    dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainCtrl))   },
         { &gainSrcSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainSrc))    },
         { &eqLowSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqLow))      },
@@ -170,27 +165,18 @@ void StitcherEditor::timerCallback()
     // Drain any pending MIDI learn capture from the audio thread.
     audioProcessor.getMidiLearn().processCapture();
 
-    auto& proc  = audioProcessor;
-    auto& apvts = proc.getAPVTS();
+    auto& proc = audioProcessor;
 
-    zcrMeter_.setLevel(proc.getLastCtrlZcr());
-    zcrMeter_.setActive(apvts.getRawParameterValue(ParamIDs::zcrWeight)->load() > 0.f);
-    rmsMeter_.setLevel(proc.getLastCtrlRms());
-    rmsMeter_.setActive(apvts.getRawParameterValue(ParamIDs::rmsWeight)->load() > 0.f);
-    scMeter_.setLevel(proc.getLastCtrlSc());
-    scMeter_.setActive(apvts.getRawParameterValue(ParamIDs::scWeight)->load() > 0.f);
-    stMeter_.setLevel(proc.getLastCtrlSt());
-    stMeter_.setActive(apvts.getRawParameterValue(ParamIDs::stWeight)->load() > 0.f);
+    morphPad_.setLiveLevels(proc.getLastCtrlZcr(), proc.getLastCtrlRms(),
+                            proc.getLastCtrlSc(),  proc.getLastCtrlSt());
+    morphPad_.repaint();
 
-    corpusFillMeter_.setLevel(proc.getLastCorpusFill());
+    matchViz_.tick(proc.getLastCtrlRms(),
+                   proc.getLastMatchedIndex(),
+                   proc.getLastCorpusFill());
+    matchViz_.repaint();
 
     levelMeter_.setLevels(proc.getLastOutPeakL(), proc.getLastOutPeakR());
-
-    zcrMeter_.repaint();
-    rmsMeter_.repaint();
-    scMeter_.repaint();
-    stMeter_.repaint();
-    corpusFillMeter_.repaint();
     levelMeter_.repaint();
 }
 
@@ -267,26 +253,19 @@ void StitcherEditor::resized()
     {
         auto r = concatArea.reduced(6).withTrimmedTop(headerH);
 
-        // Row 1: zcr, rms, sc, st — each has label + meter + slider
+        // Row 1: MorphPad (replaces the 4 weight knobs + meters)
         const int kw1 = std::min(90, (r.getWidth() - 9) / 4);
         const int kh1 = kw1 + labelH + meterH;
-        auto row1 = r.removeFromTop(kh1);
-        struct WK { juce::Slider* s; juce::Label* l; FeatureMeter* m; };
-        for (auto wk : std::initializer_list<WK>{
-                {&zcrSlider_, &zcrLabel_, &zcrMeter_},
-                {&rmsSlider_, &rmsLabel_, &rmsMeter_},
-                {&scSlider_,  &scLabel_,  &scMeter_},
-                {&stSlider_,  &stLabel_,  &stMeter_} }) {
-            auto cell = row1.removeFromLeft(kw1); row1.removeFromLeft(3);
-            wk.l->setBounds(cell.removeFromTop(labelH));
-            wk.m->setBounds(cell.removeFromTop(meterH));
-            wk.s->setBounds(cell);
+        {
+            const int padSize = std::min(r.getWidth(), kh1);
+            auto row1 = r.removeFromTop(kh1);
+            morphPad_.setBounds(row1.withSizeKeepingCentre(padSize, kh1));
         }
         r.removeFromTop(gap);
 
-        // Row 2: seek, matchLen (with sync toggle), rand
+        // Row 2: seek, matchLen (with sync toggle), rand, xfade
         const int syncBtnH = 18;
-        const int kw2 = std::min(90, (r.getWidth() - 6) / 3);
+        const int kw2 = std::min(90, (r.getWidth() - 9) / 4);
         const int kh2 = kw2 + labelH + syncBtnH;
         auto row2 = r.removeFromTop(kh2);
         // Seek
@@ -314,10 +293,17 @@ void StitcherEditor::resized()
             cell.removeFromTop(syncBtnH);
             randSlider_.setBounds(cell);
         }
+        // Xfade
+        {
+            auto cell = row2.removeFromLeft(kw2); row2.removeFromLeft(3);
+            xfadeLabel_.setBounds(cell.removeFromTop(labelH));
+            cell.removeFromTop(syncBtnH);
+            xfadeSlider_.setBounds(cell);
+        }
         r.removeFromTop(gap);
 
-        // Corpus fill indicator
-        corpusFillMeter_.setBounds(r.removeFromTop(meterH));
+        // Match visualizer (replaces corpus fill bar)
+        matchViz_.setBounds(r.removeFromTop(50));
         r.removeFromTop(gap);
 
         // Row 3: gainCtrl, gainSrc + Freeze

@@ -1,13 +1,13 @@
 #include "StitcherLookAndFeel.h"
 #include <BinaryData.h>
 
-const juce::Colour StitcherLookAndFeel::Background { 0xFF1A1A1F };
-const juce::Colour StitcherLookAndFeel::Panel       { 0xFF252530 };
-const juce::Colour StitcherLookAndFeel::Accent      { 0xFFFFA84C };
-const juce::Colour StitcherLookAndFeel::AccentDim   { 0xFF7A5025 };
-const juce::Colour StitcherLookAndFeel::TextBright  { 0xFFE8E4DC };
-const juce::Colour StitcherLookAndFeel::TextDim     { 0xFF8A8680 };
-const juce::Colour StitcherLookAndFeel::Track       { 0xFF3A3A45 };
+const juce::Colour StitcherLookAndFeel::Background { 0xFF000000 };
+const juce::Colour StitcherLookAndFeel::Panel       { 0xFF0F0F0F };
+const juce::Colour StitcherLookAndFeel::Accent      { 0xFF7FD8A8 };
+const juce::Colour StitcherLookAndFeel::AccentDim   { 0xFF3F6C54 };
+const juce::Colour StitcherLookAndFeel::TextBright  { 0xFFFFFFFF };
+const juce::Colour StitcherLookAndFeel::TextDim     { 0xFF888888 };
+const juce::Colour StitcherLookAndFeel::Track       { 0xFF1F1F1F };
 
 StitcherLookAndFeel::StitcherLookAndFeel()
 {

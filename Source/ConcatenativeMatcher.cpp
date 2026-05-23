@@ -59,6 +59,7 @@ bool ConcatenativeMatcher::match(const Features& controlFeatures,
             matchIdx = candidates_[random_.nextInt(static_cast<int>(candidates_.size()))];
     }
 
+    lastMatchedIndex_ = matchIdx;
     const auto& frame = corpus.getFrame(matchIdx);
     std::copy(frame.audioL.begin(), frame.audioL.end(), outputBufL_.begin());
     std::copy(frame.audioR.begin(), frame.audioR.end(), outputBufR_.begin());

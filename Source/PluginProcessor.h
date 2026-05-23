@@ -46,9 +46,10 @@ public:
     float getLastCtrlRms()    const noexcept { return lastCtrlRms_.load(); }
     float getLastCtrlSc()     const noexcept { return lastCtrlSc_.load(); }
     float getLastCtrlSt()     const noexcept { return lastCtrlSt_.load(); }
-    float getLastCorpusFill() const noexcept { return lastCorpusFill_.load(); }
-    float getLastOutPeakL()   const noexcept { return lastOutPeakL_.load(); }
-    float getLastOutPeakR()   const noexcept { return lastOutPeakR_.load(); }
+    float getLastCorpusFill()    const noexcept { return lastCorpusFill_.load(); }
+    int   getLastMatchedIndex()  const noexcept { return lastMatchedIndex_.load(); }
+    float getLastOutPeakL()      const noexcept { return lastOutPeakL_.load(); }
+    float getLastOutPeakR()      const noexcept { return lastOutPeakR_.load(); }
 
 private:
     int frameSize_ = 1024;  // set in prepareToPlay from matchLen parameter
@@ -76,7 +77,7 @@ private:
     int accumPos_ = 0;
 
     // Grain double-buffer for position-aligned crossfade
-    static constexpr int kXfadeLen = 256;   // ~5.8ms at 44.1kHz
+    std::atomic<int> xfadeLenSamples_ { 256 };
     std::vector<float> currentGrainL_;
     std::vector<float> currentGrainR_;
     std::vector<float> nextGrainL_;
@@ -104,6 +105,7 @@ private:
     std::atomic<float> lastCtrlSc_     { 0.f };
     std::atomic<float> lastCtrlSt_     { 0.f };
     std::atomic<float> lastCorpusFill_ { 0.f };
+    std::atomic<int>   lastMatchedIndex_ { -1 };
     std::atomic<float> lastOutPeakL_   { 0.f };
     std::atomic<float> lastOutPeakR_   { 0.f };
     int corpusMaxFrames_ = 1;

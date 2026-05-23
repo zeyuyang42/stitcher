@@ -33,12 +33,14 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 - **Hann-windowed FFT** — accurate spectral features with no leakage from the analysis window
 - **Configurable frame size** — `matchLen` (10–100 ms) sets the analysis/grain size at load time (nearest power of two); `seekTime` (1–5 s) sets corpus depth
 - **Tempo-sync** — toggle sync on the Match Len knob to lock grain size to a host BPM subdivision (1/16 through 2/1)
-- **Position-aligned crossfade** — 256-sample crossfade between consecutive grains eliminates boundary clicks without resetting playback position
+- **Variable crossfade** — Xfade knob (0–1) controls grain-boundary crossfade length; dial to 0 for audible clicks, 1 for smooth transitions
 - **Grain-only EQ** — 3-band EQ shapes the grain signal before the dry/wet blend; dry path is unaffected
 - **Randomness** — blend between deterministic best-match and random near-match selection
 - **Reverb** — room size, damping, wet level
 - **Freeze** — lock corpus to prevent new frames from being written
-- **Custom UI** — dark theme with amber accents, Inter font, value-arc rotary knobs, live feature meters, corpus fill indicator, stereo output level meter
+- **Morph pad** — 2D pad replaces four weight knobs; drag the thumb to blend ZCR (TL), RMS (TR), SC (BL), ST (BR) via bilinear weighting; corner glow dots show live feature levels
+- **Match visualizer** — live 2-track animation showing ctrl RMS history (top) and corpus slots (bottom); connection line highlights the matched corpus block each grain cycle
+- **Custom UI** — black/white with mint green accents, Inter font, value-arc rotary knobs, stereo output level meter
 - **Preset bank** — 51 factory presets across 8 categories (Utility, Drums, Texture, Glitch, Vocal, Lo-Fi, Tonal, FX) plus user preset save/load
 - **A/B state slots** — capture and recall two parameter snapshots for instant comparison
 - **MIDI learn** — right-click any knob and assign a MIDI CC; bindings persist with the DAW project
@@ -56,6 +58,7 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 | | Match Len Div | 1/16–2/1 | Subdivision when sync is on |
 | | Seek Time | 1–5 s | Corpus rolling-window depth (load-time) |
 | | Rand | 0–1 | Randomness among near-best matches |
+| | Xfade | 0–1 | Grain boundary crossfade length (0 = click, 1 = 256 samples) |
 | | Ctrl Gain | −24–+24 dB | Scales sidechain before feature extraction |
 | | Src Gain | −24–+24 dB | Scales corpus audio after feature extraction |
 | | Freeze | on/off | Locks corpus (no new frames written) |
@@ -81,7 +84,7 @@ cmake --build build --target Stitcher_pluginval_cli  # pluginval format validati
 
 ## Testing
 
-- **Unit tests** — 44 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, PresetManager, MidiLearn
+- **Unit tests** — 56 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, PresetManager, MidiLearn, MorphPad
 - **Plugin validation** — pluginval at strictness level 5 against AU
 
 ## Usage
@@ -94,6 +97,13 @@ The plugin requires two stereo inputs:
 In most DAWs, route the sidechain via the plugin's side-chain input. If the sidechain is unconnected, the plugin outputs silence (corpus still accumulates from the main input).
 
 ## Changelog
+
+### v0.3.0 — ui-v3 cycle (2026-05-23)
+
+- **Black/white + mint palette** — Background #000000, Panel #0F0F0F, Accent #7FD8A8 mint green; replaces dark amber theme
+- **Xfade parameter** — 0–1 knob maps to 0–256 sample crossfade; at 0 grain edges click (textural choice), at 1 fully smooth
+- **4-corner morph pad** — replaces ZCR/RMS/SC/ST weight knobs; drag thumb to bilinearly blend all four weights; corner glow dots reflect live ctrl feature levels
+- **Match visualizer** — live 2-track animation: top scrolls ctrl RMS history, bottom shows 32 corpus slots with matched slot highlighted; diagonal connection line follows each grain match
 
 ### v0.2.0 — ui-presets cycle (2026-05-22 – 2026-05-23)
 

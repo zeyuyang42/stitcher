@@ -6,6 +6,8 @@ public:
     void prepare(const juce::dsp::ProcessSpec& spec);
     // gains in dB: lowDb = low shelf (200 Hz), midDb = mid peak (1 kHz), highDb = high shelf (6 kHz)
     void setGains(float lowDb, float midDb, float highDb);
+    // tilt in [-1, +1]: negative = dark (low boost / high cut), positive = bright (high boost / low cut)
+    void setTilt(float tilt);
     void process(juce::dsp::AudioBlock<float>& block);
 
 private:

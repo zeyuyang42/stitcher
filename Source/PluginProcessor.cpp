@@ -28,8 +28,8 @@ StitcherProcessor::StitcherProcessor()
                       matchLen, seekTime, rand_,
                       matchLenSync, matchLenDiv,
                       gainCtrl, gainSrc,
-                      eqLow, eqMid, eqHigh,
-                      reverbRoom, reverbDamp, reverbWet,
+                      eqLow, eqMid, eqHigh, eqTilt,
+                      reverbRoom, reverbDamp, reverbWet, reverbSpace,
                       gainOut, mix, xfade })
         apvts_.addParameterListener(id, this);
 
@@ -113,6 +113,11 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
     updateMatcherFromParams();
 
+    eq_.setTilt(apvts_.getRawParameterValue(ParamIDs::eqTilt)->load());
+    reverb_.setSpace(
+        apvts_.getRawParameterValue(ParamIDs::reverbSpace)->load(),
+        apvts_.getRawParameterValue(ParamIDs::reverbWet)->load());
+
     gainCtrl_ = juce::Decibels::decibelsToGain(
         apvts_.getRawParameterValue(ParamIDs::gainCtrl)->load());
     gainSrc_ = juce::Decibels::decibelsToGain(
@@ -163,15 +168,11 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         updateMatcherFromParams();
 
     if (eqDirty_.exchange(false))
-        eq_.setGains(
-            apvts_.getRawParameterValue(ParamIDs::eqLow)->load(),
-            apvts_.getRawParameterValue(ParamIDs::eqMid)->load(),
-            apvts_.getRawParameterValue(ParamIDs::eqHigh)->load());
+        eq_.setTilt(apvts_.getRawParameterValue(ParamIDs::eqTilt)->load());
 
     if (reverbDirty_.exchange(false))
-        reverb_.setParams(
-            apvts_.getRawParameterValue(ParamIDs::reverbRoom)->load(),
-            apvts_.getRawParameterValue(ParamIDs::reverbDamp)->load(),
+        reverb_.setSpace(
+            apvts_.getRawParameterValue(ParamIDs::reverbSpace)->load(),
             apvts_.getRawParameterValue(ParamIDs::reverbWet)->load());
 
     auto mainInput = getBusBuffer(buffer, true, 0);
@@ -375,9 +376,9 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
         mix_ = newValue / 100.f;
     else if (id == freeze)
         freeze_ = newValue > 0.5f;
-    else if (id == eqLow || id == eqMid || id == eqHigh)
+    else if (id == eqTilt)
         eqDirty_ = true;
-    else if (id == reverbRoom || id == reverbDamp || id == reverbWet)
+    else if (id == reverbSpace || id == reverbWet)
         reverbDirty_ = true;
     else if (id == ParamIDs::xfade)
         xfadeLenSamples_.store(

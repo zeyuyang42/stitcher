@@ -14,6 +14,11 @@ void EQProcessor::setGains(float lowDb, float midDb, float highDb)
     updateCoefficients(lowDb, midDb, highDb);
 }
 
+void EQProcessor::setTilt(float tilt)
+{
+    setGains(-tilt * 12.f, 0.f, tilt * 12.f);
+}
+
 void EQProcessor::process(juce::dsp::AudioBlock<float>& block)
 {
     juce::dsp::ProcessContextReplacing<float> ctx(block);

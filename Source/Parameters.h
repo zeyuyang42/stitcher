@@ -20,10 +20,12 @@ namespace ParamIDs {
     inline constexpr auto eqLow      { "eq_low" };
     inline constexpr auto eqMid      { "eq_mid" };
     inline constexpr auto eqHigh     { "eq_high" };
+    inline constexpr auto eqTilt     { "eq_tilt" };
     // Reverb
-    inline constexpr auto reverbRoom { "reverb_room" };
-    inline constexpr auto reverbDamp { "reverb_damp" };
-    inline constexpr auto reverbWet  { "reverb_wet" };
+    inline constexpr auto reverbRoom  { "reverb_room" };
+    inline constexpr auto reverbDamp  { "reverb_damp" };
+    inline constexpr auto reverbWet   { "reverb_wet" };
+    inline constexpr auto reverbSpace { "reverb_space" };
     // Output
     inline constexpr auto gainOut    { "gain_out" };
     inline constexpr auto mix        { "mix" };
@@ -133,6 +135,12 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         String(), AudioProcessorParameter::genericParameter,
         dbFormat, nullptr));
 
+    layout.add(std::make_unique<AudioParameterFloat>(
+        ParameterID{ParamIDs::eqTilt, 1}, "Tilt",
+        NormalisableRange<float>(-1.f, 1.f, 0.01f), 0.f,
+        String(), AudioProcessorParameter::genericParameter,
+        [](float v, int) { return String(v, 2); }, nullptr));
+
     // Reverb
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{ParamIDs::reverbRoom, 1}, "Room",
@@ -149,6 +157,12 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{ParamIDs::reverbWet, 1}, "Wet",
         NormalisableRange<float>(0.f, 1.f, 0.01f), 0.f,
+        String(), AudioProcessorParameter::genericParameter,
+        [](float v, int) { return String(v, 2); }, nullptr));
+
+    layout.add(std::make_unique<AudioParameterFloat>(
+        ParameterID{ParamIDs::reverbSpace, 1}, "Space",
+        NormalisableRange<float>(0.f, 1.f, 0.01f), 0.5f,
         String(), AudioProcessorParameter::genericParameter,
         [](float v, int) { return String(v, 2); }, nullptr));
 

@@ -3,6 +3,8 @@ add_executable(StitcherTests
     CorpusStoreTest.cpp
     ConcatenativeMatcherTest.cpp
     EQProcessorTest.cpp
+    EQTiltTest.cpp
+    ReverbSpaceTest.cpp
     PresetManagerTest.cpp
     MidiLearnTest.cpp
     MorphPadTest.cpp
@@ -10,6 +12,7 @@ add_executable(StitcherTests
     ${CMAKE_SOURCE_DIR}/Source/CorpusStore.cpp
     ${CMAKE_SOURCE_DIR}/Source/ConcatenativeMatcher.cpp
     ${CMAKE_SOURCE_DIR}/Source/EQProcessor.cpp
+    ${CMAKE_SOURCE_DIR}/Source/ReverbProcessor.cpp
     ${CMAKE_SOURCE_DIR}/Source/PresetManager.cpp
     ${CMAKE_SOURCE_DIR}/Source/MidiLearn.cpp
     ${CMAKE_SOURCE_DIR}/Source/UI/MorphPad.cpp

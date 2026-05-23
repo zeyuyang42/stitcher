@@ -79,3 +79,50 @@ TEST_CASE("ST is in [0,1] for any signal") {
     REQUIRE(f.st >= 0.f);
     REQUIRE(f.st <= 1.f);
 }
+
+TEST_CASE("SC is lower for a low-frequency sine than a high-frequency sine") {
+    FeatureExtractor fe;
+    fe.prepare(1024);
+    std::vector<float> low(1024), high(1024);
+    // low: ~430 Hz (bin ~10 at 44.1kHz); high: ~17 kHz (bin ~396 at 44.1kHz)
+    for (int i = 0; i < 1024; ++i) {
+        low[i]  = std::sin(2.f * 3.14159f * 10.f  * i / 1024.f);
+        high[i] = std::sin(2.f * 3.14159f * 396.f * i / 1024.f);
+    }
+    auto fLow  = fe.extract(low.data(),  1024);
+    auto fHigh = fe.extract(high.data(), 1024);
+    REQUIRE(fLow.sc < fHigh.sc);
+}
+
+TEST_CASE("ST is lower for a low-frequency sine than a high-frequency sine") {
+    FeatureExtractor fe;
+    fe.prepare(1024);
+    std::vector<float> low(1024), high(1024);
+    // low: energy in bins below mid (256); high: energy in bins above mid
+    for (int i = 0; i < 1024; ++i) {
+        low[i]  = std::sin(2.f * 3.14159f * 10.f  * i / 1024.f);
+        high[i] = std::sin(2.f * 3.14159f * 400.f * i / 1024.f);
+    }
+    auto fLow  = fe.extract(low.data(),  1024);
+    auto fHigh = fe.extract(high.data(), 1024);
+    REQUIRE(fLow.st < fHigh.st);
+}
+
+TEST_CASE("FeatureExtractor works correctly at frameSize 512") {
+    FeatureExtractor fe;
+    fe.prepare(512);
+    std::vector<float> buf(512, 0.f);
+    auto f = fe.extract(buf.data(), 512);
+    REQUIRE(f.zcr == Catch::Approx(0.f));
+    REQUIRE(f.rms == Catch::Approx(0.f));
+    REQUIRE(f.sc  == Catch::Approx(0.f));
+    REQUIRE(f.st  == Catch::Approx(0.f));
+}
+
+TEST_CASE("FeatureExtractor works correctly at frameSize 2048") {
+    FeatureExtractor fe;
+    fe.prepare(2048);
+    std::vector<float> buf(2048, 1.f);
+    auto f = fe.extract(buf.data(), 2048);
+    REQUIRE(f.rms == Catch::Approx(1.f));
+}

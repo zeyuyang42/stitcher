@@ -7,6 +7,11 @@ void FeatureExtractor::prepare(int frameSize)
     fftOrder_ = static_cast<int>(std::log2(frameSize));
     fft_ = std::make_unique<juce::dsp::FFT>(fftOrder_);
     fftBuffer_.assign(frameSize * 2, 0.f);
+
+    // Pre-compute Hann window: w[n] = 0.5 * (1 - cos(2π·n / (N-1)))
+    window_.resize(frameSize);
+    for (int i = 0; i < frameSize; ++i)
+        window_[i] = 0.5f * (1.f - std::cos(2.f * float(M_PI) * i / float(frameSize - 1)));
 }
 
 Features FeatureExtractor::extract(const float* samples, int numSamples)
@@ -17,10 +22,10 @@ Features FeatureExtractor::extract(const float* samples, int numSamples)
     f.zcr = computeZcr(samples, N);
     f.rms = computeRms(samples, N);
 
-    // Copy into FFT buffer (zero-padded to 2*frameSize for complex output)
+    // Copy into FFT buffer with Hann window applied (zero-padded to 2*frameSize for complex output)
     std::fill(fftBuffer_.begin(), fftBuffer_.end(), 0.f);
     for (int i = 0; i < N; ++i)
-        fftBuffer_[i] = samples[i];
+        fftBuffer_[i] = samples[i] * window_[i];
 
     fft_->performFrequencyOnlyForwardTransform(fftBuffer_.data());
 

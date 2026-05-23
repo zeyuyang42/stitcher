@@ -21,6 +21,7 @@ private:
     int fftOrder_  = 10;
     std::unique_ptr<juce::dsp::FFT> fft_;
     std::vector<float> fftBuffer_;
+    std::vector<float> window_;     // pre-computed Hann window, length frameSize_
 
     float computeZcr(const float* samples, int N) const;
     float computeRms(const float* samples, int N) const;

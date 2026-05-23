@@ -8,7 +8,9 @@ namespace ParamIDs {
     inline constexpr auto rmsWeight  { "rms_weight" };
     inline constexpr auto scWeight   { "sc_weight" };
     inline constexpr auto stWeight   { "st_weight" };
-    inline constexpr auto matchLen   { "match_len" };
+    inline constexpr auto matchLen    { "match_len" };
+    inline constexpr auto matchLenSync { "match_len_sync" };
+    inline constexpr auto matchLenDiv  { "match_len_div" };
     inline constexpr auto seekTime   { "seek_time" };
     inline constexpr auto rand_      { "rand" };
     inline constexpr auto freeze     { "freeze" };
@@ -75,6 +77,13 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         NormalisableRange<float>(10.f, 100.f, 1.f), 50.f,
         String(), AudioProcessorParameter::genericParameter,
         msFormat, nullptr));
+
+    layout.add(std::make_unique<AudioParameterBool>(
+        ParameterID{ParamIDs::matchLenSync, 1}, "Match Len Sync", false));
+
+    layout.add(std::make_unique<AudioParameterChoice>(
+        ParameterID{ParamIDs::matchLenDiv, 1}, "Match Len Div",
+        juce::StringArray{"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 2));
 
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{ParamIDs::seekTime, 1}, "Seek Time",

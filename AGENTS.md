@@ -51,11 +51,12 @@ Source/
   UI/LevelMeter.h/.cpp         — stereo peak meter
   UI/MorphPad.h/.cpp           — 4-corner bilinear morph pad for feature weights
   UI/MatchVisualizer.h/.cpp    — live corpus/ctrl match animation strip
+  UI/SettingsPopover.h/.cpp    — gear popover: Seek/MatchLen/Sync/Div/CtrlGain/SrcGain
   Assets/Fonts/            — Inter-Regular.ttf (embedded via BinaryData)
   Assets/Presets/          — 51 factory preset XMLs (embedded via BinaryData)
   PluginEditor.h/.cpp
   PluginProcessor.h/.cpp
-  Parameters.h             — 21 APVTS parameter IDs (added xfade in v0.3)
+  Parameters.h             — 23 APVTS parameter IDs (added eqTilt + reverbSpace in v0.4)
   FeatureExtractor.h/.cpp
   CorpusStore.h/.cpp
   ConcatenativeMatcher.h/.cpp

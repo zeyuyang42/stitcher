@@ -34,12 +34,14 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 - **Configurable frame size** — `matchLen` (10–100 ms) sets the analysis/grain size at load time (nearest power of two); `seekTime` (1–5 s) sets corpus depth
 - **Tempo-sync** — toggle sync on the Match Len knob to lock grain size to a host BPM subdivision (1/16 through 2/1)
 - **Variable crossfade** — Xfade knob (0–1) controls grain-boundary crossfade length; dial to 0 for audible clicks, 1 for smooth transitions
-- **Grain-only EQ** — 3-band EQ shapes the grain signal before the dry/wet blend; dry path is unaffected
+- **Grain-only EQ (Tilt)** — single Tilt knob shapes grain brightness: negative = dark (low boost / high cut), positive = bright (high boost / low cut)
 - **Randomness** — blend between deterministic best-match and random near-match selection
-- **Reverb** — room size, damping, wet level
+- **Reverb** — single Space knob drives room size + damping together (small = tight/damped, large = open/airy); separate Wet level
 - **Freeze** — lock corpus to prevent new frames from being written
+- **Center-focus layout** — MorphPad (hero) + MatchVisualizer stacked in center; 3 live controls (Rand/Xfade/Freeze) on the left, 5 tone controls (Tilt/Space/Wet/Mix/Output) on the right
 - **Morph pad** — 2D pad replaces four weight knobs; drag the thumb to blend ZCR (TL), RMS (TR), SC (BL), ST (BR) via bilinear weighting; corner glow dots show live feature levels
 - **Match visualizer** — live 2-track animation showing ctrl RMS history (top) and corpus slots (bottom); connection line highlights the matched corpus block each grain cycle
+- **Settings popover** — gear button (⚙) exposes load-time params (Seek/MatchLen/Sync/Div) and trim gains (Ctrl/Src) in a compact overlay
 - **Custom UI** — black/white with mint green accents, Inter font, value-arc rotary knobs, stereo output level meter
 - **Preset bank** — 51 factory presets across 8 categories (Utility, Drums, Texture, Glitch, Vocal, Lo-Fi, Tonal, FX) plus user preset save/load
 - **A/B state slots** — capture and recall two parameter snapshots for instant comparison
@@ -62,11 +64,8 @@ Main in ──[stereo→mono]──→ FeatureExtractor ──→ src_features �
 | | Ctrl Gain | −24–+24 dB | Scales sidechain before feature extraction |
 | | Src Gain | −24–+24 dB | Scales corpus audio after feature extraction |
 | | Freeze | on/off | Locks corpus (no new frames written) |
-| EQ | Low | −12–+12 dB | Low shelf at 200 Hz |
-| | Mid | −12–+12 dB | Mid peak at 1 kHz |
-| | High | −12–+12 dB | High shelf at 6 kHz |
-| Reverb | Room | 0–1 | Room size |
-| | Damp | 0–1 | High-frequency damping |
+| EQ | Tilt | −1–+1 | Negative = dark (low boost/high cut), positive = bright (high boost/low cut) |
+| Reverb | Space | 0–1 | 0 = tight/damped (room 0.20, damp 0.90), 1 = open/airy (room 0.95, damp 0.20) |
 | | Wet | 0–1 | Reverb wet level |
 | Output | Gain | −24–+24 dB | Final output gain |
 | | Mix | 0–100% | Dry/wet blend |
@@ -84,7 +83,7 @@ cmake --build build --target Stitcher_pluginval_cli  # pluginval format validati
 
 ## Testing
 
-- **Unit tests** — 56 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, PresetManager, MidiLearn, MorphPad
+- **Unit tests** — 62 Catch2 tests covering FeatureExtractor, CorpusStore, ConcatenativeMatcher, EQProcessor, EQTilt, ReverbSpace, PresetManager, MidiLearn, MorphPad
 - **Plugin validation** — pluginval at strictness level 5 against AU
 
 ## Usage
@@ -97,6 +96,14 @@ The plugin requires two stereo inputs:
 In most DAWs, route the sidechain via the plugin's side-chain input. If the sidechain is unconnected, the plugin outputs silence (corpus still accumulates from the main input).
 
 ## Changelog
+
+### v0.4.0 — center-focus UI cycle (2026-05-23)
+
+- **Center-focus layout** — removed 4-panel grid; MorphPad + MatchVisualizer occupy the center; 3 live controls (Rand/Xfade/Freeze) on the left, 5 tone controls (Tilt/Space/Wet/Mix/Output) on the right
+- **EQ 3→1 Tilt** — single Tilt knob (-1..+1) replaces Low/Mid/High EQ; maps to ±12 dB inverse low/high shelves; old band params kept in APVTS for preset compatibility
+- **Reverb 3→2 Space+Wet** — Space knob (0..1) drives room size and damping together; Wet stays separate; old Room/Damp kept in APVTS
+- **Settings popover** — gear button (⚙) in preset bar reveals Seek, Match Len, Sync, Div, Ctrl Gain, Src Gain (load-time + trim controls no longer cluttering main face)
+- **APVTS grows to 23 params** (eqTilt + reverbSpace added; 21 existing kept for backward preset compatibility)
 
 ### v0.3.0 — ui-v3 cycle (2026-05-23)
 

@@ -85,13 +85,15 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     addAndMakeVisible(matchViz_);
 
     // Left column
-    initRotary(randSlider_,  randLabel_,  "Rand",  *this);
-    initRotary(xfadeSlider_, xfadeLabel_, "Xfade", *this);
+    initRotary(randSlider_,   randLabel_,   "Rand",  *this);
+    initRotary(xfadeSlider_,  xfadeLabel_,  "Xfade", *this);
+    initRotary(pitchSlider_,  pitchLabel_,  "Pitch", *this);
     freezeButton_.setButtonText("Freeze");
     addAndMakeVisible(freezeButton_);
 
     // Right column
     initRotary(tiltSlider_,      tiltLabel_,      "Tilt",   *this);
+    initRotary(crushSlider_,     crushLabel_,     "Crush",  *this);
     initRotary(spaceSlider_,     spaceLabel_,     "Space",  *this);
     initRotary(reverbWetSlider_, reverbWetLabel_, "Wet",    *this);
     initRotary(mixSlider_,       mixLabel_,       "Mix",    *this);
@@ -102,8 +104,10 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     // Attachments
     randAttach_       = std::make_unique<SA>(apvts, ParamIDs::rand_,      randSlider_);
     xfadeAttach_      = std::make_unique<SA>(apvts, ParamIDs::xfade,      xfadeSlider_);
+    pitchAttach_      = std::make_unique<SA>(apvts, ParamIDs::pitchShift, pitchSlider_);
     freezeAttach_     = std::make_unique<BA>(apvts, ParamIDs::freeze,     freezeButton_);
     tiltAttach_       = std::make_unique<SA>(apvts, ParamIDs::eqTilt,     tiltSlider_);
+    crushAttach_      = std::make_unique<SA>(apvts, ParamIDs::crush,      crushSlider_);
     spaceAttach_      = std::make_unique<SA>(apvts, ParamIDs::reverbSpace, spaceSlider_);
     reverbWetAttach_  = std::make_unique<SA>(apvts, ParamIDs::reverbWet,   reverbWetSlider_);
     mixAttach_        = std::make_unique<SA>(apvts, ParamIDs::mix,         mixSlider_);
@@ -117,7 +121,9 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
         { &srcGainSlider_,   dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainSrc))      },
         { &randSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))        },
         { &xfadeSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::xfade))        },
+        { &pitchSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::pitchShift))   },
         { &tiltSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqTilt))       },
+        { &crushSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::crush))        },
         { &spaceSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbSpace))  },
         { &reverbWetSlider_, dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbWet))    },
         { &mixSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::mix))          },
@@ -275,9 +281,9 @@ void StitcherEditor::resized()
     morphPad_.setBounds(center.getX() + centerOffsetX, padTop, padSz, padSz);
     matchViz_.setBounds(center.getX(), padTop + padSz + gap, center.getWidth(), vizH);
 
-    // Left column: Rand, Xfade, Freeze — tighter spacing over pad height
+    // Left column: Rand, Xfade, Pitch, Freeze — tighter spacing over pad height
     {
-        const int slotH = padSz / 3;
+        const int slotH = padSz / 4;
         int y = padTop;
 
         randLabel_.setBounds(leftCol.getX(), y, sideW, labelH);
@@ -288,17 +294,22 @@ void StitcherEditor::resized()
         xfadeSlider_.setBounds(leftCol.getX(), y + labelH, sideW, knobSz);
         y += slotH;
 
+        pitchLabel_.setBounds(leftCol.getX(), y, sideW, labelH);
+        pitchSlider_.setBounds(leftCol.getX(), y + labelH, sideW, knobSz);
+        y += slotH;
+
         const int freezeH = 28;
         freezeButton_.setBounds(leftCol.getX(), y + (slotH - freezeH) / 2, sideW, freezeH);
     }
 
-    // Right column: Tilt, Space, Wet, Mix, Output — over full body height
+    // Right column: Tilt, Crush, Space, Wet, Mix, Output — over full body height
     {
         const int totalH = padSz + gap + vizH;
-        const int slotH  = totalH / 5;
+        const int slotH  = totalH / 6;
         int y = padTop;
         for (auto [s, l] : std::initializer_list<std::pair<juce::Slider*, juce::Label*>>{
                 {&tiltSlider_,      &tiltLabel_},
+                {&crushSlider_,     &crushLabel_},
                 {&spaceSlider_,     &spaceLabel_},
                 {&reverbWetSlider_, &reverbWetLabel_},
                 {&mixSlider_,       &mixLabel_},

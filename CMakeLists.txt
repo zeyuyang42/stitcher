@@ -24,6 +24,11 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Dependencies
 CPMAddPackage("gh:juce-framework/JUCE#master")
 CPMAddPackage("gh:catchorg/Catch2@3.7.1")
+CPMAddPackage(
+    NAME signalsmith-stretch
+    GITHUB_REPOSITORY Signalsmith-Audio/signalsmith-stretch
+    GIT_TAG main
+)
 
 set(SourceFiles
     Source/LookAndFeel/StitcherLookAndFeel.h
@@ -59,6 +64,10 @@ set(SourceFiles
     Source/FactoryPresets.h
     Source/MidiLearn.h
     Source/MidiLearn.cpp
+    Source/BitCrushProcessor.h
+    Source/BitCrushProcessor.cpp
+    Source/PitchShiftProcessor.h
+    Source/PitchShiftProcessor.cpp
 )
 
 juce_add_plugin(${PROJECT_NAME}
@@ -161,6 +170,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         juce::juce_gui_extra
         StitcherBinaryData
+        signalsmith-stretch
     PUBLIC
         juce::juce_audio_basics
         juce::juce_audio_devices

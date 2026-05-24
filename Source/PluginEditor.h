@@ -42,13 +42,13 @@ private:
     MatchVisualizer matchViz_;
 
     // Left column
-    juce::Slider       randSlider_, xfadeSlider_;
-    juce::Label        randLabel_,  xfadeLabel_;
+    juce::Slider       randSlider_, xfadeSlider_, pitchSlider_;
+    juce::Label        randLabel_,  xfadeLabel_,  pitchLabel_;
     juce::ToggleButton freezeButton_;
 
     // Right column
-    juce::Slider tiltSlider_, spaceSlider_, reverbWetSlider_, mixSlider_, gainOutSlider_;
-    juce::Label  tiltLabel_,  spaceLabel_,  reverbWetLabel_,  mixLabel_,  gainOutLabel_;
+    juce::Slider tiltSlider_, crushSlider_, spaceSlider_, reverbWetSlider_, mixSlider_, gainOutSlider_;
+    juce::Label  tiltLabel_,  crushLabel_,  spaceLabel_,  reverbWetLabel_,  mixLabel_,  gainOutLabel_;
 
     // Output meter
     LevelMeter levelMeter_;
@@ -61,9 +61,9 @@ private:
     std::unique_ptr<BA> syncAttach_;
     std::unique_ptr<CA> divAttach_;
 
-    std::unique_ptr<SA> randAttach_, xfadeAttach_;
+    std::unique_ptr<SA> randAttach_, xfadeAttach_, pitchAttach_;
     std::unique_ptr<BA> freezeAttach_;
-    std::unique_ptr<SA> tiltAttach_, spaceAttach_, reverbWetAttach_, mixAttach_, gainOutAttach_;
+    std::unique_ptr<SA> tiltAttach_, crushAttach_, spaceAttach_, reverbWetAttach_, mixAttach_, gainOutAttach_;
 
     // MIDI Learn: maps each main-face slider to its APVTS parameter
     std::map<juce::Slider*, juce::RangedAudioParameter*> sliderToParam_;

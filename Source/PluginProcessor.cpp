@@ -30,7 +30,8 @@ StitcherProcessor::StitcherProcessor()
                       gainCtrl, gainSrc,
                       eqLow, eqMid, eqHigh, eqTilt,
                       reverbRoom, reverbDamp, reverbWet, reverbSpace,
-                      gainOut, mix, xfade })
+                      gainOut, mix, xfade,
+                      pitchShift, crush })
         apvts_.addParameterListener(id, this);
 
     apvts_.addParameterListener(freeze, this);
@@ -90,6 +91,9 @@ void StitcherProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     matcher_.prepare(frameSize_);
     eq_.prepare(spec);
     reverb_.prepare(spec);
+    pitchShift_.prepare(spec);
+    bitCrush_.setBits(16.f - apvts_.getRawParameterValue(ParamIDs::crush)->load() * 14.f);
+    pitchShift_.setSemitones(apvts_.getRawParameterValue(ParamIDs::pitchShift)->load());
     limiter_.prepare(spec);
     limiter_.setThreshold(-1.0f);  // -1 dBFS ceiling
     limiter_.setRelease(50.0f);    // 50 ms release
@@ -169,6 +173,12 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     if (eqDirty_.exchange(false))
         eq_.setTilt(apvts_.getRawParameterValue(ParamIDs::eqTilt)->load());
+
+    if (pitchDirty_.exchange(false))
+        pitchShift_.setSemitones(apvts_.getRawParameterValue(ParamIDs::pitchShift)->load());
+
+    if (crushDirty_.exchange(false))
+        bitCrush_.setBits(16.f - apvts_.getRawParameterValue(ParamIDs::crush)->load() * 14.f);
 
     if (reverbDirty_.exchange(false))
         reverb_.setSpace(
@@ -280,8 +290,10 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         grainR[i] = gR;
     }
 
-    // Apply EQ to grain signal only (grain is mono so L=R; EQ processes both channels independently)
+    // Apply effects chain to grain signal: pitch → crush → EQ
     juce::dsp::AudioBlock<float> grainBlock(grainMixBuf_);
+    pitchShift_.process(grainBlock);
+    bitCrush_.process(grainBlock);
     eq_.process(grainBlock);
 
     // Blend EQ'd grain with dry main input into output
@@ -375,6 +387,10 @@ void StitcherProcessor::parameterChanged(const juce::String& id, float newValue)
         eqDirty_ = true;
     else if (id == reverbSpace || id == reverbWet)
         reverbDirty_ = true;
+    else if (id == pitchShift)
+        pitchDirty_ = true;
+    else if (id == crush)
+        crushDirty_ = true;
     else if (id == ParamIDs::xfade)
         xfadeLenSamples_.store(
             juce::jlimit(0, frameSize_ - 1, static_cast<int>(newValue * 256.f)));

@@ -6,6 +6,8 @@
 #include "ConcatenativeMatcher.h"
 #include "EQProcessor.h"
 #include "ReverbProcessor.h"
+#include "BitCrushProcessor.h"
+#include "PitchShiftProcessor.h"
 #include "MidiLearn.h"
 
 class StitcherProcessor : public juce::AudioProcessor,
@@ -66,6 +68,8 @@ private:
     ConcatenativeMatcher matcher_;
     EQProcessor          eq_;
     ReverbProcessor      reverb_;
+    PitchShiftProcessor  pitchShift_;
+    BitCrushProcessor    bitCrush_;
     juce::dsp::Limiter<float> limiter_;
 
     // Internal frame accumulation buffers
@@ -100,6 +104,8 @@ private:
     std::atomic<bool> eqDirty_      { false };
     std::atomic<bool> reverbDirty_  { false };
     std::atomic<bool> matcherDirty_ { false };
+    std::atomic<bool> pitchDirty_   { false };
+    std::atomic<bool> crushDirty_   { false };
 
     // UI observability — written on audio thread, read by message-thread timer ~30 Hz
     std::atomic<float> lastCtrlZcr_    { 0.f };

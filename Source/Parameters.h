@@ -31,6 +31,9 @@ namespace ParamIDs {
     inline constexpr auto mix        { "mix" };
     // Crossfade
     inline constexpr auto xfade      { "xfade" };
+    // Effects
+    inline constexpr auto pitchShift { "pitch_shift" };
+    inline constexpr auto crush      { "crush" };
 }
 
 static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
@@ -184,6 +187,24 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         NormalisableRange<float>(0.f, 1.f, 0.01f), 1.f,
         String(), AudioProcessorParameter::genericParameter,
         [](float v, int) { return String(v, 2); }, nullptr));
+
+    // Effects
+    layout.add(std::make_unique<AudioParameterFloat>(
+        ParameterID{ParamIDs::pitchShift, 1}, "Pitch",
+        NormalisableRange<float>(-24.f, 24.f, 0.1f), 0.f,
+        String(), AudioProcessorParameter::genericParameter,
+        [](float v, int) {
+            return (v >= 0 ? "+" : "") + String(v, 1) + " st";
+        }, nullptr));
+
+    layout.add(std::make_unique<AudioParameterFloat>(
+        ParameterID{ParamIDs::crush, 1}, "Crush",
+        NormalisableRange<float>(0.f, 1.f, 0.01f), 0.f,
+        String(), AudioProcessorParameter::genericParameter,
+        [](float v, int) {
+            const int bits = juce::roundToInt(16.f - v * 14.f);
+            return String(bits) + " bit";
+        }, nullptr));
 
     return layout;
 }

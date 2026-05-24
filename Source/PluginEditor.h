@@ -32,10 +32,8 @@ private:
     PresetBar     presetBar_;
 
     // Param strip (load-time + trim)
-    juce::Slider       seekSlider_, matchLenSlider_, ctrlGainSlider_, srcGainSlider_;
-    juce::ToggleButton syncButton_;
-    juce::ComboBox     divBox_;
-    juce::Label        seekLabel_, matchLenLabel_, ctrlGainLabel_, srcGainLabel_;
+    juce::Slider seekSlider_, matchLenSlider_, ctrlGainSlider_, srcGainSlider_;
+    juce::Label  seekLabel_,  matchLenLabel_,  ctrlGainLabel_,  srcGainLabel_;
 
     // Center hero
     MorphPad        morphPad_;
@@ -55,11 +53,8 @@ private:
 
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    using CA = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
 
     std::unique_ptr<SA> seekAttach_, matchLenAttach_, ctrlGainAttach_, srcGainAttach_;
-    std::unique_ptr<BA> syncAttach_;
-    std::unique_ptr<CA> divAttach_;
 
     std::unique_ptr<SA> randAttach_, xfadeAttach_, pitchAttach_;
     std::unique_ptr<BA> freezeAttach_;

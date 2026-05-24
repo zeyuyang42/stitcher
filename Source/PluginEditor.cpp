@@ -36,9 +36,8 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
             audioProcessor.getAPVTS().replaceState(abSlots_[slot].createCopy());
     };
 
-    setSize(880, 520);
-    setResizable(true, true);
-    setResizeLimits(660, 390, 1320, 780);
+    setSize(560, 620);
+    setResizable(false, false);
 
     auto& apvts = audioProcessor.getAPVTS();
 
@@ -48,32 +47,10 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     initRotary(ctrlGainSlider_, ctrlGainLabel_, "Ctrl Gain", *this);
     initRotary(srcGainSlider_,  srcGainLabel_,  "Src Gain",  *this);
 
-    syncButton_.setButtonText("Sync");
-    addAndMakeVisible(syncButton_);
-
-    divBox_.addItemList({"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 1);
-    addAndMakeVisible(divBox_);
-
-    seekAttach_     = std::make_unique<SA>(apvts, ParamIDs::seekTime,     seekSlider_);
-    matchLenAttach_ = std::make_unique<SA>(apvts, ParamIDs::matchLen,     matchLenSlider_);
-    ctrlGainAttach_ = std::make_unique<SA>(apvts, ParamIDs::gainCtrl,     ctrlGainSlider_);
-    srcGainAttach_  = std::make_unique<SA>(apvts, ParamIDs::gainSrc,      srcGainSlider_);
-    syncAttach_     = std::make_unique<BA>(apvts, ParamIDs::matchLenSync, syncButton_);
-    divAttach_      = std::make_unique<CA>(apvts, ParamIDs::matchLenDiv,  divBox_);
-
-    syncButton_.onClick = [this] {
-        const bool sync = syncButton_.getToggleState();
-        matchLenSlider_.setVisible(!sync);
-        divBox_.setVisible(sync);
-        matchLenLabel_.setText(sync ? "Div" : "Match Len", juce::dontSendNotification);
-        resized();
-    };
-    {
-        const bool sync = syncButton_.getToggleState();
-        matchLenSlider_.setVisible(!sync);
-        divBox_.setVisible(sync);
-        matchLenLabel_.setText(sync ? "Div" : "Match Len", juce::dontSendNotification);
-    }
+    seekAttach_     = std::make_unique<SA>(apvts, ParamIDs::seekTime, seekSlider_);
+    matchLenAttach_ = std::make_unique<SA>(apvts, ParamIDs::matchLen, matchLenSlider_);
+    ctrlGainAttach_ = std::make_unique<SA>(apvts, ParamIDs::gainCtrl, ctrlGainSlider_);
+    srcGainAttach_  = std::make_unique<SA>(apvts, ParamIDs::gainSrc,  srcGainSlider_);
 
     // Center hero
     morphPad_.setParams(
@@ -217,7 +194,7 @@ void StitcherEditor::resized()
         auto r = area.removeFromTop(paramH);
         area.removeFromTop(gap);
 
-        const int numCells = 5;
+        const int numCells = 4;
         const int cellW    = (r.getWidth() - (numCells - 1) * gap) / numCells;
 
         auto takeCell = [&]() -> juce::Rectangle<int> {
@@ -233,22 +210,11 @@ void StitcherEditor::resized()
             seekSlider_.setBounds(c);
         }
 
-        // Match Len / Div
+        // Match Len
         {
             auto c = takeCell();
             matchLenLabel_.setBounds(c.removeFromTop(labelH));
-            if (matchLenSlider_.isVisible())
-                matchLenSlider_.setBounds(c);
-            else
-                divBox_.setBounds(c.withSizeKeepingCentre(c.getWidth(), 24)
-                                   .withY(c.getY() + (c.getHeight() - 24) / 2));
-        }
-
-        // Sync toggle
-        {
-            auto c = takeCell();
-            syncButton_.setBounds(c.withSizeKeepingCentre(c.getWidth(), 24)
-                                   .withY(c.getY() + (c.getHeight() - 24) / 2));
+            matchLenSlider_.setBounds(c);
         }
 
         // Ctrl Gain

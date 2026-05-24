@@ -8,7 +8,6 @@
 #include "UI/LevelMeter.h"
 #include "UI/MorphPad.h"
 #include "UI/MatchVisualizer.h"
-#include "UI/SettingsPopover.h"
 
 class StitcherEditor : public juce::AudioProcessorEditor,
                        private juce::Timer {
@@ -31,7 +30,12 @@ private:
     // PresetManager must be declared before PresetBar (construction order)
     PresetManager presetManager_;
     PresetBar     presetBar_;
-    juce::TextButton settingsButton_;
+
+    // Param strip (load-time + trim)
+    juce::Slider       seekSlider_, matchLenSlider_, ctrlGainSlider_, srcGainSlider_;
+    juce::ToggleButton syncButton_;
+    juce::ComboBox     divBox_;
+    juce::Label        seekLabel_, matchLenLabel_, ctrlGainLabel_, srcGainLabel_;
 
     // Center hero
     MorphPad        morphPad_;
@@ -51,6 +55,11 @@ private:
 
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
     using BA = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    using CA = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+
+    std::unique_ptr<SA> seekAttach_, matchLenAttach_, ctrlGainAttach_, srcGainAttach_;
+    std::unique_ptr<BA> syncAttach_;
+    std::unique_ptr<CA> divAttach_;
 
     std::unique_ptr<SA> randAttach_, xfadeAttach_;
     std::unique_ptr<BA> freezeAttach_;

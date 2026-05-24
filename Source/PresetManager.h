@@ -28,15 +28,16 @@ public:
 
     juce::String getCurrentPresetName() const;
     void setCurrentPresetName(const juce::String& name);
+    bool isCurrentPresetUser() const;
 
     void selectNext();
     void selectPrev();
 
     static juce::File getUserPresetsDir();
+    juce::StringArray getUserPresetNames() const;
 
 private:
     bool loadFromXmlString(const juce::String& xml, const juce::String& name);
-    juce::StringArray getUserPresetNames() const;
 
     juce::AudioProcessorValueTreeState& apvts_;
     juce::File presetsDir_;

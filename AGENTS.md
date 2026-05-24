@@ -33,10 +33,10 @@ Tests compile Source `.cpp` files directly (not via a library target). Test bina
 ### Plugin layout
 - Single-project (not a monorepo). One JUCE plugin → VST3 + AU + Standalone.
 - Entrypoint: `Source/PluginProcessor.cpp` → `createPluginFilter()` returns `new StitcherProcessor`.
-- Editor is `StitcherEditor` (custom 4-section UI in `Source/PluginEditor.h/.cpp`).
+- Editor is `StitcherEditor` (center-focus UI with preset bar + param strip + 3-column body in `Source/PluginEditor.h/.cpp`).
 - Company: Absinthismus, Plugin code: CSS1, Manufacturer code: Ab42.
 - LookAndFeel: `StitcherLookAndFeel` (dark theme, amber accents, Inter font via BinaryData).
-- Preset bar: `PresetBar` component at top — save/load/next/prev/init, A/B state slots.
+- Preset bar: `PresetBar` component at top — clickable name opens preset menu, A/B with shift-click to capture, Save button.
 - Factory presets: 51 XMLs embedded via `juce_add_binary_data`; `makeFactoryPresets()` in `FactoryPresets.h` registers them with `PresetManager`.
 - MIDI learn: `MidiLearn` in `Source/MidiLearn.h/.cpp` — right-click any knob → bind CC.
 - Morph pad: `MorphPad` in `Source/UI/MorphPad.h/.cpp` — 2D bilinear blending of the four feature weights (TL=ZCR, TR=RMS, BL=SC, BR=ST); replaces four separate knobs.
@@ -51,7 +51,6 @@ Source/
   UI/LevelMeter.h/.cpp         — stereo peak meter
   UI/MorphPad.h/.cpp           — 4-corner bilinear morph pad for feature weights
   UI/MatchVisualizer.h/.cpp    — live corpus/ctrl match animation strip
-  UI/SettingsPopover.h/.cpp    — gear popover: Seek/MatchLen/Sync/Div/CtrlGain/SrcGain
   Assets/Fonts/            — Inter-Regular.ttf (embedded via BinaryData)
   Assets/Presets/          — 51 factory preset XMLs (embedded via BinaryData)
   PluginEditor.h/.cpp

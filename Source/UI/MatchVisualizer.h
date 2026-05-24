@@ -21,4 +21,7 @@ private:
     // Most recent values from tick()
     int   matchedIndex_  = -1;
     float corpusFill_    = 0.f;
+
+    // Pulse animation: fires on each new match, decays at ~150 ms
+    float matchPulse_    = 0.f;   // 0..1
 };

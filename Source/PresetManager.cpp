@@ -113,6 +113,12 @@ juce::String PresetManager::getCurrentPresetName() const
     return currentPresetName_;
 }
 
+bool PresetManager::isCurrentPresetUser() const
+{
+    if (currentPresetName_.isEmpty()) return false;
+    return presetsDir_.getChildFile(currentPresetName_ + ".xml").existsAsFile();
+}
+
 void PresetManager::setCurrentPresetName(const juce::String& name)
 {
     currentPresetName_ = name;

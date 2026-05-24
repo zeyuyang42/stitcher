@@ -97,6 +97,13 @@ In most DAWs, route the sidechain via the plugin's side-chain input. If the side
 
 ## Changelog
 
+### v0.5.0 — surface, tighten, simplify (2026-05-24)
+
+- **Load-time params on main face** — Seek, Match Len, Sync, Div, Ctrl Gain, Src Gain graduate to a dedicated strip directly under the preset bar; gear (`⚙`) popover removed entirely
+- **MatchVisualizer pulse animation** — the diagonal connection line is replaced by a pulse-on-match flash: the matched corpus slot brightens to full accent and decays over ~150 ms, making match activity immediately readable
+- **Simplified preset bar** — reduced from 9 buttons to 4: click the preset name to open a category menu (Init is the first item); A and B with shift-click to capture, click to recall; single Save button (overwrites user presets silently, prompts name for factory/unsaved)
+- **Tighter layout** — knobs at 56 px (was 64), meter at 14 px (was 18), denser column spacing within the same 880×520 window
+
 ### v0.4.1 — crossfade fix (2026-05-24)
 
 - **Two-voice OLA grain engine** — replaces the position-aligned double-buffer with two independent grain voices; each grain's buffer is pre-windowed (trapezoidal fade-in/fade-out) at load time; voices stop naturally at `frameSize_` samples (no wrap) so the click is gone

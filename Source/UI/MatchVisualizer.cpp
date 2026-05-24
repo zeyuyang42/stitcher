@@ -8,6 +8,10 @@ void MatchVisualizer::tick(float ctrlRms, int matchedIndex, float corpusFill)
     historyHead_ = (historyHead_ + 1) % kSlots;
     if (historyCount_ < kSlots) ++historyCount_;
 
+    if (matchedIndex != matchedIndex_ && matchedIndex >= 0)
+        matchPulse_ = 1.f;
+    matchPulse_ *= 0.78f;  // ~150 ms 1/e decay at 30 Hz
+
     matchedIndex_ = matchedIndex;
     corpusFill_   = corpusFill;
 }
@@ -92,23 +96,22 @@ void MatchVisualizer::paint(juce::Graphics& g)
 
         if (slot < filledSlots) {
             const bool isMatch = (slot == matchDisplaySlot);
-            g.setColour(isMatch ? StitcherLookAndFeel::Accent
-                                : StitcherLookAndFeel::AccentDim);
+            if (isMatch && matchPulse_ > 0.01f) {
+                // Outer glow
+                g.setColour(StitcherLookAndFeel::Accent.withAlpha(0.4f * matchPulse_));
+                g.fillRoundedRectangle(block.expanded(2.f), 2.f);
+                // Blended fill: AccentDim → Accent by pulse
+                auto colour = StitcherLookAndFeel::AccentDim.interpolatedWith(
+                    StitcherLookAndFeel::Accent, matchPulse_);
+                g.setColour(colour);
+            } else {
+                g.setColour(isMatch ? StitcherLookAndFeel::Accent
+                                    : StitcherLookAndFeel::AccentDim);
+            }
             g.fillRoundedRectangle(block, 1.f);
         } else {
             g.setColour(StitcherLookAndFeel::Track.brighter(0.1f));
             g.fillRoundedRectangle(block, 1.f);
         }
-    }
-
-    // ── Connection line ─────────────────────────────────────────────────────
-    if (matchDisplaySlot >= 0) {
-        const float newestX = 1.f + (kSlots - 1) * blockW + blockW * 0.5f;
-        const float matchX  = 1.f + matchDisplaySlot * blockW + blockW * 0.5f;
-        const float fromY   = static_cast<float>(topY + trackH);
-        const float toY     = static_cast<float>(bottomY);
-
-        g.setColour(StitcherLookAndFeel::Accent.withAlpha(0.5f));
-        g.drawLine(newestX, fromY, matchX, toY, 1.5f);
     }
 }

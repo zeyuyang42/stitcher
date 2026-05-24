@@ -36,22 +36,44 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
             audioProcessor.getAPVTS().replaceState(abSlots_[slot].createCopy());
     };
 
-    // Settings (gear) button
-    settingsButton_.setButtonText(juce::CharPointer_UTF8("\xe2\x9a\x99"));  // ⚙
-    addAndMakeVisible(settingsButton_);
-    settingsButton_.onClick = [this] {
-        auto content = std::make_unique<SettingsPopover>(audioProcessor.getAPVTS());
-        juce::CallOutBox::launchAsynchronously(
-            std::move(content),
-            settingsButton_.getScreenBounds(),
-            nullptr);
-    };
-
     setSize(880, 520);
     setResizable(true, true);
     setResizeLimits(660, 390, 1320, 780);
 
     auto& apvts = audioProcessor.getAPVTS();
+
+    // Param strip — load-time + trim controls
+    initRotary(seekSlider_,     seekLabel_,     "Seek",      *this);
+    initRotary(matchLenSlider_, matchLenLabel_, "Match Len", *this);
+    initRotary(ctrlGainSlider_, ctrlGainLabel_, "Ctrl Gain", *this);
+    initRotary(srcGainSlider_,  srcGainLabel_,  "Src Gain",  *this);
+
+    syncButton_.setButtonText("Sync");
+    addAndMakeVisible(syncButton_);
+
+    divBox_.addItemList({"1/16","1/8","1/4","1/4.","1/2","1/1","2/1"}, 1);
+    addAndMakeVisible(divBox_);
+
+    seekAttach_     = std::make_unique<SA>(apvts, ParamIDs::seekTime,     seekSlider_);
+    matchLenAttach_ = std::make_unique<SA>(apvts, ParamIDs::matchLen,     matchLenSlider_);
+    ctrlGainAttach_ = std::make_unique<SA>(apvts, ParamIDs::gainCtrl,     ctrlGainSlider_);
+    srcGainAttach_  = std::make_unique<SA>(apvts, ParamIDs::gainSrc,      srcGainSlider_);
+    syncAttach_     = std::make_unique<BA>(apvts, ParamIDs::matchLenSync, syncButton_);
+    divAttach_      = std::make_unique<CA>(apvts, ParamIDs::matchLenDiv,  divBox_);
+
+    syncButton_.onClick = [this] {
+        const bool sync = syncButton_.getToggleState();
+        matchLenSlider_.setVisible(!sync);
+        divBox_.setVisible(sync);
+        matchLenLabel_.setText(sync ? "Div" : "Match Len", juce::dontSendNotification);
+        resized();
+    };
+    {
+        const bool sync = syncButton_.getToggleState();
+        matchLenSlider_.setVisible(!sync);
+        divBox_.setVisible(sync);
+        matchLenLabel_.setText(sync ? "Div" : "Match Len", juce::dontSendNotification);
+    }
 
     // Center hero
     morphPad_.setParams(
@@ -87,15 +109,19 @@ StitcherEditor::StitcherEditor(StitcherProcessor& p)
     mixAttach_        = std::make_unique<SA>(apvts, ParamIDs::mix,         mixSlider_);
     gainOutAttach_    = std::make_unique<SA>(apvts, ParamIDs::gainOut,     gainOutSlider_);
 
-    // MIDI Learn: only main-face sliders
+    // MIDI Learn: all rotary sliders on the main face
     sliderToParam_ = {
-        { &randSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))       },
-        { &xfadeSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::xfade))       },
-        { &tiltSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqTilt))      },
-        { &spaceSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbSpace)) },
-        { &reverbWetSlider_, dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbWet))   },
-        { &mixSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::mix))         },
-        { &gainOutSlider_,   dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainOut))     },
+        { &seekSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::seekTime))     },
+        { &matchLenSlider_,  dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::matchLen))     },
+        { &ctrlGainSlider_,  dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainCtrl))     },
+        { &srcGainSlider_,   dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainSrc))      },
+        { &randSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::rand_))        },
+        { &xfadeSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::xfade))        },
+        { &tiltSlider_,      dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::eqTilt))       },
+        { &spaceSlider_,     dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbSpace))  },
+        { &reverbWetSlider_, dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::reverbWet))    },
+        { &mixSlider_,       dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::mix))          },
+        { &gainOutSlider_,   dynamic_cast<juce::RangedAudioParameter*>(apvts.getParameter(ParamIDs::gainOut))      },
     };
     for (auto& [slider, param] : sliderToParam_)
         slider->addMouseListener(this, false);
@@ -165,35 +191,82 @@ void StitcherEditor::resized()
 {
     const int margin   = 8;
     const int gap      = 6;
-    const int presetH  = 36;
-    const int labelH   = 16;
-    const int knobSz   = 64;   // rotary knob cell width
-    const int vizH     = 72;
-    const int meterW   = 18;
-    const int gearW    = 34;
-    const int sideW    = knobSz + 8;
+    const int presetH  = 32;
+    const int paramH   = 72;   // label (14) + rotary (56) + 2px breathing room
+    const int labelH   = 14;
+    const int knobSz   = 56;
+    const int vizH     = 64;
+    const int meterW   = 14;
+    const int sideW    = knobSz + 6;
 
     auto area = getLocalBounds().reduced(margin);
 
-    // Preset bar + gear button
-    {
-        auto row = area.removeFromTop(presetH);
-        settingsButton_.setBounds(row.removeFromRight(gearW).withSizeKeepingCentre(gearW, presetH));
-        presetBar_.setBounds(row);
-    }
+    // Preset bar — full width
+    presetBar_.setBounds(area.removeFromTop(presetH));
     area.removeFromTop(gap);
+
+    // Param strip — Seek / MatchLen / Sync / CtrlGain / SrcGain
+    {
+        auto r = area.removeFromTop(paramH);
+        area.removeFromTop(gap);
+
+        const int numCells = 5;
+        const int cellW    = (r.getWidth() - (numCells - 1) * gap) / numCells;
+
+        auto takeCell = [&]() -> juce::Rectangle<int> {
+            auto c = r.removeFromLeft(cellW);
+            r.removeFromLeft(gap);
+            return c;
+        };
+
+        // Seek
+        {
+            auto c = takeCell();
+            seekLabel_.setBounds(c.removeFromTop(labelH));
+            seekSlider_.setBounds(c);
+        }
+
+        // Match Len / Div
+        {
+            auto c = takeCell();
+            matchLenLabel_.setBounds(c.removeFromTop(labelH));
+            if (matchLenSlider_.isVisible())
+                matchLenSlider_.setBounds(c);
+            else
+                divBox_.setBounds(c.withSizeKeepingCentre(c.getWidth(), 24)
+                                   .withY(c.getY() + (c.getHeight() - 24) / 2));
+        }
+
+        // Sync toggle
+        {
+            auto c = takeCell();
+            syncButton_.setBounds(c.withSizeKeepingCentre(c.getWidth(), 24)
+                                   .withY(c.getY() + (c.getHeight() - 24) / 2));
+        }
+
+        // Ctrl Gain
+        {
+            auto c = takeCell();
+            ctrlGainLabel_.setBounds(c.removeFromTop(labelH));
+            ctrlGainSlider_.setBounds(c);
+        }
+
+        // Src Gain (use remaining r)
+        srcGainLabel_.setBounds(r.removeFromTop(labelH));
+        srcGainSlider_.setBounds(r);
+    }
 
     // Level meter on far right
     levelMeter_.setBounds(area.removeFromRight(meterW));
     area.removeFromRight(gap);
 
     // Side columns
-    auto leftCol  = area.removeFromLeft(sideW);  area.removeFromLeft(gap);
-    auto rightCol = area.removeFromRight(sideW); area.removeFromRight(gap);
+    auto leftCol  = area.removeFromLeft(sideW);   area.removeFromLeft(gap);
+    auto rightCol = area.removeFromRight(sideW);  area.removeFromRight(gap);
 
     // Center: MorphPad (square) then MatchVisualizer
     auto& center = area;
-    const int padH = center.getHeight() - vizH - gap;
+    const int padH  = center.getHeight() - vizH - gap;
     const int padSz = std::min(center.getWidth(), padH);
     const int centerOffsetX = (center.getWidth() - padSz) / 2;
 
@@ -201,25 +274,24 @@ void StitcherEditor::resized()
     morphPad_.setBounds(center.getX() + centerOffsetX, padTop, padSz, padSz);
     matchViz_.setBounds(center.getX(), padTop + padSz + gap, center.getWidth(), vizH);
 
-    // Left column: Rand, Xfade, Freeze — distributed over pad height
+    // Left column: Rand, Xfade, Freeze — tighter spacing over pad height
     {
         const int slotH = padSz / 3;
         int y = padTop;
-        // Rand
+
         randLabel_.setBounds(leftCol.getX(), y, sideW, labelH);
         randSlider_.setBounds(leftCol.getX(), y + labelH, sideW, knobSz);
         y += slotH;
-        // Xfade
+
         xfadeLabel_.setBounds(leftCol.getX(), y, sideW, labelH);
         xfadeSlider_.setBounds(leftCol.getX(), y + labelH, sideW, knobSz);
         y += slotH;
-        // Freeze — centered in remaining slot
+
         const int freezeH = 28;
-        const int freezeY = y + (slotH - freezeH) / 2;
-        freezeButton_.setBounds(leftCol.getX(), freezeY, sideW, freezeH);
+        freezeButton_.setBounds(leftCol.getX(), y + (slotH - freezeH) / 2, sideW, freezeH);
     }
 
-    // Right column: Tilt, Space, Wet, Mix, Output — distributed over pad+viz height
+    // Right column: Tilt, Space, Wet, Mix, Output — over full body height
     {
         const int totalH = padSz + gap + vizH;
         const int slotH  = totalH / 5;

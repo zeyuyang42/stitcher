@@ -46,8 +46,9 @@ public:
     float getLastCtrlRms()    const noexcept { return lastCtrlRms_.load(); }
     float getLastCtrlSc()     const noexcept { return lastCtrlSc_.load(); }
     float getLastCtrlSt()     const noexcept { return lastCtrlSt_.load(); }
-    float getLastCorpusFill()    const noexcept { return lastCorpusFill_.load(); }
-    int   getLastMatchedIndex()  const noexcept { return lastMatchedIndex_.load(); }
+    float    getLastCorpusFill()   const noexcept { return lastCorpusFill_.load(); }
+    int      getLastMatchedIndex() const noexcept { return lastMatchedIndex_.load(); }
+    uint32_t getMatchEpoch()       const noexcept { return matchEpoch_.load(); }
     float getLastOutPeakL()      const noexcept { return lastOutPeakL_.load(); }
     float getLastOutPeakR()      const noexcept { return lastOutPeakR_.load(); }
 
@@ -105,8 +106,9 @@ private:
     std::atomic<float> lastCtrlRms_    { 0.f };
     std::atomic<float> lastCtrlSc_     { 0.f };
     std::atomic<float> lastCtrlSt_     { 0.f };
-    std::atomic<float> lastCorpusFill_ { 0.f };
-    std::atomic<int>   lastMatchedIndex_ { -1 };
+    std::atomic<float>    lastCorpusFill_   { 0.f };
+    std::atomic<int>      lastMatchedIndex_ { -1 };
+    std::atomic<uint32_t> matchEpoch_       { 0 };
     std::atomic<float> lastOutPeakL_   { 0.f };
     std::atomic<float> lastOutPeakR_   { 0.f };
     int corpusMaxFrames_ = 1;

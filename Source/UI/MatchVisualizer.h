@@ -1,14 +1,15 @@
 #pragma once
 #include <JuceHeader.h>
 #include <array>
-#include <atomic>
+#include <cstdint>
 
 class MatchVisualizer : public juce::Component {
 public:
     static constexpr int kSlots = 32;
 
-    // Called from 30Hz timer — push latest ctrl RMS, update matched index and fill
-    void tick(float ctrlRms, int matchedIndex, float corpusFill);
+    // Called from 30Hz timer — push latest ctrl RMS, update matched index and fill.
+    // matchEpoch increments every grain hand-off in the processor (regardless of index).
+    void tick(float ctrlRms, int matchedIndex, float corpusFill, uint32_t matchEpoch);
 
     void paint(juce::Graphics&) override;
 
@@ -22,6 +23,7 @@ private:
     int   matchedIndex_  = -1;
     float corpusFill_    = 0.f;
 
-    // Pulse animation: fires on each new match, decays at ~150 ms
-    float matchPulse_    = 0.f;   // 0..1
+    // Pulse animation: fires on every grain hand-off (epoch-driven, not index-driven)
+    uint32_t lastMatchEpoch_ = 0;
+    float    matchPulse_     = 0.f;   // 0..1
 };

@@ -1,15 +1,16 @@
 #include "MatchVisualizer.h"
 #include "../LookAndFeel/StitcherLookAndFeel.h"
 
-void MatchVisualizer::tick(float ctrlRms, int matchedIndex, float corpusFill)
+void MatchVisualizer::tick(float ctrlRms, int matchedIndex, float corpusFill, uint32_t matchEpoch)
 {
     // Push to ring buffer (overwrite oldest)
     ctrlHistory_[historyHead_] = ctrlRms;
     historyHead_ = (historyHead_ + 1) % kSlots;
     if (historyCount_ < kSlots) ++historyCount_;
 
-    if (matchedIndex != matchedIndex_ && matchedIndex >= 0)
+    if (matchEpoch != lastMatchEpoch_)
         matchPulse_ = 1.f;
+    lastMatchEpoch_ = matchEpoch;
     matchPulse_ *= 0.78f;  // ~150 ms 1/e decay at 30 Hz
 
     matchedIndex_ = matchedIndex;

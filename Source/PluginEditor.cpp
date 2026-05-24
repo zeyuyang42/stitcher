@@ -146,7 +146,8 @@ void StitcherEditor::timerCallback()
 
     matchViz_.tick(proc.getLastCtrlRms(),
                    proc.getLastMatchedIndex(),
-                   proc.getLastCorpusFill());
+                   proc.getLastCorpusFill(),
+                   proc.getMatchEpoch());
     matchViz_.repaint();
 
     levelMeter_.setLevels(proc.getLastOutPeakL(), proc.getLastOutPeakR());

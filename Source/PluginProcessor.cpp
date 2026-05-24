@@ -232,6 +232,7 @@ void StitcherProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             const float* matchedL = nullptr, *matchedR = nullptr;
             if (matcher_.match(ctrlFeatures, corpus_, matchedL, matchedR)) {
                 lastMatchedIndex_.store(matcher_.getLastMatchedIndex());
+                matchEpoch_.fetch_add(1, std::memory_order_relaxed);
                 const int xfadeLen = xfadeLenSamples_.load();
                 const int newSlot  = grainReady_ ? 1 - activeSlot_ : 0;
                 auto& nv = voices_[newSlot];
